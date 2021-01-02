@@ -1,0 +1,9 @@
+.DS_Store
+db.json
+*.log
+node_modules/
+cdn/
+public/
+.deploy*/
+.idea/
+source/_data/next.yml

@@ -1,2 +1,2 @@
-# yanboishere.github.io
-博客
+# 博客地址:
+yanboishere.github.io
