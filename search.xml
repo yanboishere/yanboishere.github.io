@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  
+  
+  
+  <entry>
+    <title>你好世界</title>
+    <link href="/posts/hello_url.html"/>
+    <url>/posts/hello_url.html</url>
+    
+    <content type="html"><![CDATA[<h1 id="你好"><a href="#你好" class="headerlink" title="你好"></a>你好</h1><p>世界</p><a id="more"></a><p>这是阅读全文</p><img src="/images/404.jpg" srcset="/img/loading.gif" class="">]]></content>
+    
+    
+    <categories>
+      
+      <category>分类1</category>
+      
+      <category>分类2</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>标签1</tag>
+      
+      <tag>标签2</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  
+</search>
