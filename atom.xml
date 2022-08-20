@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://yanboishere.github.io</id>
     <title>Yanbo&apos;s blog</title>
-    <updated>2022-08-20T12:18:24.925Z</updated>
+    <updated>2022-08-20T12:19:47.462Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://yanboishere.github.io"/>
     <link rel="self" href="https://yanboishere.github.io/atom.xml"/>
@@ -10,21 +10,4 @@
     <logo>https://yanboishere.github.io/images/avatar.png</logo>
     <icon>https://yanboishere.github.io/favicon.ico</icon>
     <rights>All rights reserved 2022, Yanbo&apos;s blog</rights>
-    <entry>
-        <title type="html"><![CDATA[About me]]></title>
-        <id>https://yanboishere.github.io/post/about-me/</id>
-        <link href="https://yanboishere.github.io/post/about-me/">
-        </link>
-        <updated>2022-08-20T09:48:34.000Z</updated>
-        <content type="html"><![CDATA[<p>Hi，我是烟波。</p>
-<p>来自长白山脉旁的一个小县城。<br>
-现在是一位准大一电子信息工程专业新生。<br>
-曾经是个oier，<br>
-现在是一名半吊子<br>
-科技数码、<br>
-摄影（最近对菲林比较感兴趣)、<br>
-旅游 爱好者。</p>
-<p>🔗联系我：yanbotravelaroundworld@gmail.com</p>
-]]></content>
-    </entry>
 </feed>
