@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://yanboishere.github.io</id>
     <title>Yanbo&apos;s blog</title>
-    <updated>2022-08-20T12:14:07.532Z</updated>
+    <updated>2022-08-20T12:17:15.075Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://yanboishere.github.io"/>
     <link rel="self" href="https://yanboishere.github.io/atom.xml"/>
@@ -11,9 +11,9 @@
     <icon>https://yanboishere.github.io/favicon.ico</icon>
     <rights>All rights reserved 2022, Yanbo&apos;s blog</rights>
     <entry>
-        <title type="html"><![CDATA[明信片互寄 地址信息]]></title>
-        <id>https://yanboishere.github.io/post/ming-xin-pian-hu-ji-di-zhi-xin-xi/</id>
-        <link href="https://yanboishere.github.io/post/ming-xin-pian-hu-ji-di-zhi-xin-xi/">
+        <title type="html"><![CDATA[我的明信片互寄项目]]></title>
+        <id>https://yanboishere.github.io/post/My postcard exchange items/</id>
+        <link href="https://yanboishere.github.io/post/My postcard exchange items/">
         </link>
         <updated>2022-08-20T11:58:29.000Z</updated>
         <summary type="html"><![CDATA[<p>欢迎各位朋友来给我寄明信片✉️，<br>
