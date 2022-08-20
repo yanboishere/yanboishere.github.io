@@ -1,102 +1,99 @@
+<!DOCTYPE html>
 <html>
   <head>
-  <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" >
+
 <title>明信片 | Yanbo&#39;s blog</title>
-<link rel="shortcut icon" href="https://yanboishere.github.io/favicon.ico?v=1661003054674">
-<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://yanboishere.github.io/favicon.ico?v=1661003654782">
 <link rel="stylesheet" href="https://yanboishere.github.io/styles/main.css">
-<link rel="alternate" type="application/atom+xml" title="明信片 | Yanbo&#39;s blog - Atom Feed" href="https://yanboishere.github.io/atom.xml">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
 
 
 
-  <meta name="description" content="I wandered like a cloud." />
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="I wandered like a cloud.">
   </head>
   <body>
-    <div class="main">
-      <div class="main-content">
-        <div class="site-header">
-  <a href="https://yanboishere.github.io">
-  <img class="avatar" src="https://yanboishere.github.io/images/avatar.png?v=1661003054674" alt="">
-  </a>
-  <h1 class="site-title">
-    Yanbo&#39;s blog
-  </h1>
-  <p class="site-description">
-    I wandered like a cloud.
-  </p>
-  <div class="menu-container">
-    
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://yanboishere.github.io">
+        <img src="https://yanboishere.github.io/images/avatar.png?v=1661003654782" class="site-logo">
+        <h1 class="site-title">Yanbo&#39;s blog</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
       
-        <a href="/" class="menu">
-          首页
-        </a>
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
       
-    
+        
+          <a href="https://yanboishere.github.io/archives" class="site-nav">
+            归档
+          </a>
+        
       
-        <a href="/archives" class="menu">
-          归档
-        </a>
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
       
-    
-      
-        <a href="/tags" class="menu">
-          标签
-        </a>
-      
-    
+    </div>
   </div>
-  <div class="social-container">
-    
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
       
-        <a href="https://github.com/yanboishere" target="_blank">
-          <i class="ri-github-line"></i>
-        </a>
+        
       
-    
+        
       
-        <a href="https://twitter.com/YanboOfficial" target="_blank">
-          <i class="ri-twitter-line"></i>
-        </a>
+        
       
-    
+        
       
-    
+        
       
-    
-      
-    
+    </div>
+    <div class="site-description">
+      I wandered like a cloud.
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://yanboishere.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
   </div>
 </div>
 
-        <div class="current-tag-container">
-            <h2 class="title">
-                标签：# 明信片
-            </h2> 
-        </div>
-        <div class="post-container">
-  
-    <article class="post">
-      <a href="https://yanboishere.github.io/post/My postcard exchange items/">
-        <h2 class="post-title">我的明信片互寄项目</h2>
-      </a>
-      <div class="post-info">
-        <span>
-          2022-08-20
-        </span>
-        <span>
-          1 min read
-        </span>
-        
-          <a href="https://yanboishere.github.io/tag/j53cj_2sp/" class="post-tag">
-            # 明信片
-          </a>
-        
-      </div>
-      
-      <div class="post-abstract">
-        <p>欢迎各位朋友来给我寄明信片✉️，<br>
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <h2 class="current-tag">标签: 明信片</h2>
+          
+            <article class="post-item">
+              <div class="left">
+                <a href="https://yanboishere.github.io/post/My postcard exchange items/">
+                  <h2 class="post-title">我的明信片互寄项目</h2>
+                </a>
+                <div class="post-date">
+                  2022-08-20
+                </div>
+                <div class="post-abstract">
+                  <p>欢迎各位朋友来给我寄明信片✉️，<br>
 相应的，当我收到明信片的同时将有机会发到我的Instagram:<br>
 http://www.instagram.com/yanbo_official<br>
 并且向您明信片上的地址回寄一片。</p>
@@ -105,24 +102,39 @@ http://www.instagram.com/yanbo_official<br>
 https://space.bilibili.com/361191773</p>
 <p>Thanks😊</p>
 
-      </div>
-    </article>
+                </div>
+              </div>
+              
+            </article>
+          
+
+          <div class="pagination-container">
+  
   
 </div>
 
-        <div class="pagination-container">
-  
-  
-</div>
-
-        <div class="site-footer">
-  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
-  <a class="rss" href="https://yanboishere.github.io/atom.xml" target="_blank">
-    <i class="ri-rss-line"></i> RSS
-  </a>
-</div>
-
+        </div>
       </div>
     </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+
+
   </body>
 </html>
