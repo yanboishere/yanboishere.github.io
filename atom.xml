@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://yanboishere.github.io</id>
     <title>Yanbo&apos;s blog | 烟波</title>
-    <updated>2022-08-24T02:58:32.666Z</updated>
+    <updated>2022-08-24T12:58:49.614Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://yanboishere.github.io"/>
     <link rel="self" href="https://yanboishere.github.io/atom.xml"/>
@@ -10,6 +10,13 @@
     <logo>https://yanboishere.github.io/images/avatar.png</logo>
     <icon>https://yanboishere.github.io/favicon.ico</icon>
     <rights>All rights reserved 2022, Yanbo&apos;s blog | 烟波</rights>
+    <entry>
+        <title type="html"><![CDATA[C++ Primer 学习日记]]></title>
+        <id>https://yanboishere.github.io/post/c-primer-xue-xi-ri-ji/</id>
+        <link href="https://yanboishere.github.io/post/c-primer-xue-xi-ri-ji/">
+        </link>
+        <updated>2022-08-21T07:41:54.000Z</updated>
+    </entry>
     <entry>
         <title type="html"><![CDATA[我的明信片互寄项目]]></title>
         <id>https://yanboishere.github.io/post/my-postcard-exchange-items/</id>
