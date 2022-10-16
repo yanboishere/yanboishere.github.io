@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://yanboishere.github.io</id>
     <title>Yanbo&apos;s blog | 烟波</title>
-    <updated>2022-10-16T10:07:20.717Z</updated>
+    <updated>2022-10-16T10:11:34.963Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://yanboishere.github.io"/>
     <link rel="self" href="https://yanboishere.github.io/atom.xml"/>
@@ -12,11 +12,12 @@
     <rights>All rights reserved 2022, Yanbo&apos;s blog | 烟波</rights>
     <entry>
         <title type="html"><![CDATA[赞赏支持页@烟波 ]]></title>
-        <id>https://yanboishere.github.io/post/zan-shang-zhi-chi-ye-yan-bo/</id>
-        <link href="https://yanboishere.github.io/post/zan-shang-zhi-chi-ye-yan-bo/">
+        <id>https://yanboishere.github.io/post/Buy_me_a_coffee/</id>
+        <link href="https://yanboishere.github.io/post/Buy_me_a_coffee/">
         </link>
         <updated>2022-10-15T09:28:55.000Z</updated>
-        <content type="html"><![CDATA[<p>Hi，你好,<br>
+        <content type="html"><![CDATA[<!-- more -->
+<p>Hi，你好,<br>
 我是烟波。<br>
 如果未来我的项目或文章对你有帮助的话，欢迎赞赏我：<br>
 <img src="https://yanboishere.github.io/post-images/1665826243500.jpg" alt="" loading="lazy"><br>
