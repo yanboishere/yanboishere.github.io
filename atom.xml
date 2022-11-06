@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://yanboishere.github.io</id>
     <title>Yanbo&apos;s blog | 烟波</title>
-    <updated>2022-11-06T03:13:41.704Z</updated>
+    <updated>2022-11-06T03:21:33.526Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://yanboishere.github.io"/>
     <link rel="self" href="https://yanboishere.github.io/atom.xml"/>
@@ -10,6 +10,38 @@
     <logo>https://yanboishere.github.io/images/avatar.png</logo>
     <icon>https://yanboishere.github.io/favicon.ico</icon>
     <rights>All rights reserved 2022, Yanbo&apos;s blog | 烟波</rights>
+    <entry>
+        <title type="html"><![CDATA[写在《我的OJ日记》项目前]]></title>
+        <id>https://yanboishere.github.io/post/written in front of the My OJ Diary project/</id>
+        <link href="https://yanboishere.github.io/post/written in front of the My OJ Diary project/">
+        </link>
+        <updated>2022-11-05T12:18:16.000Z</updated>
+        <content type="html"><![CDATA[<p>现在是2022年11月5日，我在学校实验室里的工位上编辑着这个项目，突然想写一段前言，来讲述我高中时代在oi上的付出。</p>
+<p>2020年10月，我正值高二。 当时我记得很清楚，我是在知乎上了解到信息学这一方向的竞赛，也在这过程中逐渐对编程这方面的知识有了新的认知。<br>
+从小我就是一个爱折腾的人，也是一个一旦有自己的理想就要奋不顾身去实现的人。<br>
+于是，我想尝试一下。<br>
+那年12月，正值洛谷网的创始人kkksc03的新书《深入浅出程序设计竞赛》出版，我买了一本，经常翻阅。<br>
+（我最先买到的是刘汝佳大佬写的《算法竞赛入门经典》，但当时感觉那本书难度不太适合我......）<br>
+但是因为高中学业较忙，加上那时我还没电脑，所以我很少上手实操。<br>
+(后来我买了一台4G内存的树莓派4B，装了官方系统和ARM版的VScode，利用《深入浅出》一书的课件pdf在学)<br>
+在此感谢那时我的父母和高中时期的两位信息课老师，他们在得知我一直在学，也一直在鼓励我去实现我的想法。<br>
+当时我的信息学老师也知道信息学竞赛，但她经常说，以我们这里的教育资源，能有参赛的就已经不错了。<br>
+没错，我当时真可能是我们地区第一个参加这项竞赛的人。<br>
+21年10月，我去吉林市参加了CSP-S2021第一轮，最后在弱省吉林以晋级人选中排名倒数第三的“惨绝人寰”成绩结束。<br>
+而我没有在近两个月后去长春参加第二轮。<br>
+一是因为第二轮的时间与我的二模时间冲突，二是我也基本没多少实操经验，所以我便放弃了。<br>
+但是，借用电影《悟空传》里的一段话：</p>
+<p><strong><code>*我来过， 我战斗过， 我不在乎结局*</code></strong></p>
+<p>而高考结束，刚大一开学的我就报名了明年的蓝桥杯比赛，因为我从来都真心希望我自己不留遗憾。<br>
+现在的我基本就是从头再来，不过这样也好，正好我可以从今天开始，记录下我的未来......</p>
+<p><strong>加油烟波同学!道阻且长。</strong></p>
+<p>在此感谢父母以及老师们一路上的支持。<br>
+感谢@menci @P2oileen@hzwei @kkksc03 @darkflames @rqy @范滇东 @chen_zhe @anguei 几位大佬建立的平台（如洛谷，OI wiki），以及发过的文章和视频，将我带入oi的世界中。<br>
+感谢《算法竞赛入门经典》《深入浅出程序设计竞赛》的作者团队。<br>
+感谢洛谷网上的那些提供题解和思路的大佬们。<br>
+感谢学校400实验室为我提供的工位，以让我可以在工位上刷题————亦或是写下这段话。</p>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[赞赏支持页@烟波 ]]></title>
         <id>https://yanboishere.github.io/post/support/</id>
