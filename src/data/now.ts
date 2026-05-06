@@ -6,7 +6,7 @@ export interface NowSection {
 
 export const nowData = {
   lastUpdated: "2025-05-01",
-  location: "🇰🇷 首尔",
+  location: "🇨🇳 驻马店",
   locationNote: "在路上。",
 
   sections: [
