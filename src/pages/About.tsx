@@ -61,7 +61,7 @@ export default function About() {
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="w-32 h-32 md:w-40 md:h-40 rounded-2xl overflow-hidden film-border flex-shrink-0 mx-auto md:mx-0">
                   <img
-                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80"
+                    src="/logo.png"
                     alt="烟波"
                     className="w-full h-full object-cover"
                   />
@@ -72,12 +72,10 @@ export default function About() {
                     </h2>
                   <p className="text-forest-600 dark:text-forest-400 font-mono text-sm mb-4">@yanbo2004</p>
                   <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                    嘿，我是烟波。一个从大学退学的普通人，在东南亚的咖啡馆里学会了写代码，
-                    在欧洲的青旅里学会了摄影，在各国的街头学会了好好吃饭。
+                    嘿，我是烟波。一个从大学退学的普通人，走过20个国家，还在路上。
                   </p>
                   <p className="text-gray-700 dark:text-gray-300 leading-relaxed mt-3">
                     现在的身份：数字游民 / 独立开发者 / 不太专业的旅行摄影师 / 正在 building @WorkWorkOrg。
-                    走过20个国家，还在路上。
                   </p>
                 </div>
               </div>
