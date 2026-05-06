@@ -7,7 +7,7 @@ export interface NowSection {
 export const nowData = {
   lastUpdated: "2025-05-01",
   location: "🇰🇷 首尔",
-  locationNote: "搬来首尔两个月了，住在合井附近。韩国的网速真的不是吹的。",
+  locationNote: "在路上。",
 
   sections: [
     {

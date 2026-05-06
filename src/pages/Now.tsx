@@ -54,22 +54,6 @@ export default function Now() {
               </FadeIn>
             ))}
           </div>
-
-          <FadeIn delay={0.4}>
-            <div className="mt-12 text-center">
-              <p className="text-gray-400 dark:text-gray-600 text-sm">
-                Inspired by{" "}
-                <a
-                  href="https://nownownow.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-forest-600 dark:text-forest-400 hover:underline"
-                >
-                  nownownow.com
-                </a>
-              </p>
-            </div>
-          </FadeIn>
         </div>
       </div>
     </PageTransition>
