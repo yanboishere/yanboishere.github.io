@@ -2,13 +2,136 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-  line-height: 1.5;
-  font-weight: 400;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  body {
+    position: relative;
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background-color: rgba(221, 167, 92, 0.3);
+    color: inherit;
+  }
+
+  .dark ::selection {
+    background-color: rgba(221, 167, 92, 0.5);
+  }
+}
+
+@layer components {
+  .noise-overlay {
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    animation: grain 8s steps(10) infinite;
+  }
+
+  .dark .noise-overlay {
+    opacity: 0.05;
+  }
+
+  .film-border {
+    border: 8px solid transparent;
+    border-image: linear-gradient(
+      135deg,
+      rgba(111, 78, 55, 0.15) 0%,
+      rgba(111, 78, 55, 0.05) 50%,
+      rgba(111, 78, 55, 0.15) 100%
+    ) 1;
+    box-shadow: inset 0 0 30px rgba(111, 78, 55, 0.05);
+  }
+
+  .hand-btn {
+    @apply relative px-6 py-3 font-hand text-lg transition-all duration-300;
+    border: 2px solid currentColor;
+    border-radius: 2px 12px 2px 12px;
+    transform: rotate(-1deg);
+  }
+
+  .hand-btn:hover {
+    transform: rotate(1deg) scale(1.02);
+    box-shadow: 4px 4px 0px rgba(111, 78, 55, 0.2);
+  }
+
+  .blog-content h1 {
+    @apply text-3xl font-display font-bold mt-8 mb-4;
+  }
+  .blog-content h2 {
+    @apply text-2xl font-display font-bold mt-6 mb-3;
+  }
+  .blog-content h3 {
+    @apply text-xl font-display font-semibold mt-4 mb-2;
+  }
+  .blog-content p {
+    @apply mb-4 leading-relaxed;
+  }
+  .blog-content a {
+    @apply text-forest-600 dark:text-forest-400 underline decoration-warm-300 underline-offset-2 hover:decoration-forest-500 transition-colors;
+  }
+  .blog-content blockquote {
+    @apply border-l-4 border-warm-300 pl-4 my-4 italic text-gray-600 dark:text-gray-400;
+  }
+  .blog-content ul,
+  .blog-content ol {
+    @apply mb-4 pl-6;
+  }
+  .blog-content ul {
+    list-style-type: disc;
+  }
+  .blog-content ol {
+    list-style-type: decimal;
+  }
+  .blog-content li {
+    @apply mb-1;
+  }
+  .blog-content code {
+    @apply font-mono bg-warm-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm;
+  }
+  .blog-content pre {
+    @apply bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto my-4;
+  }
+  .blog-content pre code {
+    @apply bg-transparent p-0;
+  }
+  .blog-content img {
+    @apply rounded-lg my-4;
+  }
+  .blog-content hr {
+    @apply my-8 border-warm-200 dark:border-gray-700;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(111, 78, 55, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(111, 78, 55, 0.4);
 }

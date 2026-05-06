@@ -1,24 +1,70 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎒</text></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Trae Project</title>
-    <script type="module">
-      if (import.meta.hot?.on) {
-        import.meta.hot.on('vite:error', (error) => {
-          if (error.err) {
-            console.error(
-              [error.err.message, error.err.frame].filter(Boolean).join('\n'),
-            )
-          }
-        })
-      }
-    </script>
+    <meta name="description" content="烟波 Yanbo - Dropout, Digital Nomad, Writer, Photographer. Building @WorkWorkOrg. 走过20个国家的数字背包。" />
+    <meta name="theme-color" content="#faf6ef" />
+    <meta property="og:title" content="烟波的数字背包 | Yanbo's Digital Backpack" />
+    <meta property="og:description" content="Drop out｜Digital Nomad & Writer & Photographer｜Backpacking 20 countries" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=LXGW+WenKai:wght@300;400;700&family=LXGW+WenKai+Mono:wght@400;700&display=swap" rel="stylesheet" />
+    <title>一个数字游民的博客 | Yanbo's Blog</title>
+    <style>
+      .goog-te-banner-frame { display: none !important; }
+      .goog-te-menu-frame { max-width: 100% !important; }
+      body { top: 0 !important; }
+      .skiptranslate { display: none !important; }
+      .goog-te-spinner-pos { display: none !important; }
+      #google_translate_element { display: none !important; }
+    </style>
   </head>
-  <body>
+  <body class="bg-cream dark:bg-gray-950 text-gray-800 dark:text-gray-200 font-body">
+    <div id="google_translate_element"></div>
     <div id="root"></div>
+    <script type="text/javascript">
+      window.__gtInit = function() {
+        new google.translate.TranslateElement({
+          pageLanguage: 'zh-CN',
+          autoDisplay: false,
+          multilanguagePage: true
+        }, 'google_translate_element');
+      };
+      window.__loadGoogleTranslate = function() {
+        return new Promise(function(resolve) {
+          if (document.querySelector('script[data-gt-loaded]')) {
+            resolve();
+            return;
+          }
+          var s = document.createElement('script');
+          s.src = '//translate.google.com/translate_a/element.js?cb=__gtInit';
+          s.setAttribute('data-gt-loaded', '1');
+          s.onload = resolve;
+          s.onerror = resolve;
+          document.body.appendChild(s);
+        });
+      };
+      window.__setTranslateLang = function(code) {
+        var eq = window.location.pathname + window.location.search;
+        if (code === 'zh-CN') {
+          document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+          document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + window.location.hostname;
+          window.history.replaceState(null, '', eq);
+          window.location.reload();
+          return;
+        }
+        window.location.hash = 'googtrans(zh-CN|' + code + ')';
+        window.location.reload();
+      };
+      (function() {
+        var h = window.location.hash;
+        if (h && h.indexOf('googtrans') !== -1) {
+          window.__loadGoogleTranslate();
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

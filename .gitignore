@@ -23,3 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# Privacy-sensitive data
+backUpData-all.csv
+*.csv
+scripts/process-tracks.mjs

@@ -1,0 +1,44 @@
+backend:
+  name: git-gateway
+  branch: main
+
+publish_mode: editorial_workflow
+
+media_folder: "public/uploads"
+public_folder: "/uploads"
+
+collections:
+  - name: "blog"
+    label: "博客文章"
+    folder: "content/blog"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    path: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    fields:
+      - label: "标题"
+        name: "title"
+        widget: "string"
+      - label: "发布日期"
+        name: "date"
+        widget: "datetime"
+        date_format: "YYYY-MM-DD"
+        time_format: false
+        format: "YYYY-MM-DD"
+      - label: "摘要"
+        name: "excerpt"
+        widget: "text"
+      - label: "标签"
+        name: "tags"
+        widget: "list"
+        allow_add: true
+      - label: "心情"
+        name: "mood"
+        widget: "string"
+        required: false
+      - label: "位置"
+        name: "location"
+        widget: "string"
+        required: false
+      - label: "正文"
+        name: "body"
+        widget: "markdown"
