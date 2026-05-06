@@ -1,6 +1,7 @@
 import { Github, Twitter, Mail } from "lucide-react";
 import { FaBilibili, FaYoutube, FaLinkedinIn } from "react-icons/fa6";
 import { SiXiaohongshu, SiInstagram } from "react-icons/si";
+import VisitorCounter from "./VisitorCounter";
 
 export default function Footer() {
   return (
@@ -91,7 +92,8 @@ export default function Footer() {
         </div>
 
         <div className="mt-8 pt-6 border-t border-warm-200/30 dark:border-gray-800/30 text-center">
-          <p className="text-xs text-gray-400 dark:text-gray-600" translate="no">
+          <VisitorCounter />
+          <p className="text-xs text-gray-400 dark:text-gray-600 mt-2" translate="no">
             © {new Date().getFullYear()} 烟波 Yanbo · A Digital Nomad's Blog
           </p>
         </div>

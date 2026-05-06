@@ -117,7 +117,7 @@ export default function TravelMap({ className }: TravelMapProps) {
           layersRef.current.push(animLine);
 
           setAnimating(true);
-          const ANIM_DURATION = 5000;
+          const ANIM_DURATION = 15000;
           const totalPoints = filteredCoords.length;
           const startTime = performance.now();
 

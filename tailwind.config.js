@@ -51,9 +51,9 @@ export default {
         paper: "#f5f0e8",
       },
       fontFamily: {
-        display: ['"Playfair Display"', '"LXGW WenKai"', "Georgia", "serif"],
-        hand: ['"LXGW WenKai"', "cursive"],
-        body: ['"LXGW WenKai"', "system-ui", "sans-serif"],
+        display: ['"Playfair Display"', '"LXGW WenKai"', '"PingFang SC"', '"Microsoft YaHei"', '"Noto Sans SC"', "Georgia", "serif"],
+        hand: ['"LXGW WenKai"', '"PingFang SC"', '"Microsoft YaHei"', '"Noto Sans SC"', "cursive"],
+        body: ['"LXGW WenKai"', '"PingFang SC"', '"Microsoft YaHei"', '"Noto Sans SC"', "system-ui", "sans-serif"],
         mono: ['"LXGW WenKai Mono"', "monospace"],
       },
       animation: {
