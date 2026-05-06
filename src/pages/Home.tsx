@@ -240,29 +240,27 @@ export default function Home() {
               <div className="flex items-start gap-3">
                 <span className="text-xl mt-0.5">📍</span>
                 <div>
-                  <p className="font-medium">首尔，韩国</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">搬来两个月了，合井附近</p>
+                  <p className="font-medium">驻马店，河南</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500">在朋友家做沙发客和看家</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <span className="text-xl mt-0.5">💻</span>
                 <div>
-                  <p className="font-medium">Building WorkWorkOrg</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">远程工作者社区 v0.3</p>
+                  <p className="font-medium">Building WorkWork</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500">远程工作者社区</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <span className="text-xl mt-0.5">📚</span>
                 <div>
-                  <p className="font-medium">学韩语 + Rust</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">TOPIK 2 水平，还在跟 borrow checker 较劲</p>
+                  <p className="font-medium">学英语，冲雅思7</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <span className="text-xl mt-0.5">🎮</span>
                 <div>
-                  <p className="font-medium">沉迷 Hades II</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">已经50小时了救命 🥹</p>
+                  <p className="font-medium">电子阳痿</p>
                 </div>
               </div>
             </div>
