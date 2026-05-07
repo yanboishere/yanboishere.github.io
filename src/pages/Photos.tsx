@@ -1,12 +1,32 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
 import { photos } from "@/data/photos";
 import FadeIn from "@/components/FadeIn";
 import PageTransition from "@/components/PageTransition";
 
 export default function Photos() {
-  const [selectedPhoto, setSelectedPhoto] = useState<(typeof photos)[0] | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
+  const close = useCallback(() => setSelectedIndex(null), []);
+  const prev = useCallback(() => {
+    setSelectedIndex((i) => (i !== null ? (i - 1 + photos.length) % photos.length : null));
+  }, []);
+  const next = useCallback(() => {
+    setSelectedIndex((i) => (i !== null ? (i + 1) % photos.length : null));
+  }, []);
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (selectedIndex === null) return;
+      if (e.key === "Escape") close();
+      if (e.key === "ArrowLeft") prev();
+      if (e.key === "ArrowRight") next();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [selectedIndex, close, prev, next]);
+
+  const selectedPhoto = selectedIndex !== null ? photos[selectedIndex] : null;
 
   return (
     <PageTransition>
@@ -38,11 +58,11 @@ export default function Photos() {
         <FadeIn delay={0.15}>
           <div className="w-full px-0">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-[10px]">
-              {photos.map((photo) => (
+              {photos.map((photo, index) => (
                 <div
                   key={photo.id}
                   className="relative overflow-hidden cursor-pointer group"
-                  onClick={() => setSelectedPhoto(photo)}
+                  onClick={() => setSelectedIndex(index)}
                 >
                   <img
                     src={photo.src}
@@ -78,15 +98,8 @@ export default function Photos() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4"
-            onClick={() => setSelectedPhoto(null)}
+            onClick={close}
           >
-            <button
-              className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors p-2 z-10"
-              onClick={() => setSelectedPhoto(null)}
-            >
-              <X size={28} />
-            </button>
-
             <motion.div
               initial={{ scale: 0.92, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -98,15 +111,35 @@ export default function Photos() {
               <img
                 src={selectedPhoto.src.replace("w=800", "w=1400")}
                 alt={selectedPhoto.alt}
-                className="max-h-[80vh] w-auto max-w-full object-contain"
+                className="max-h-[70vh] w-auto max-w-full object-contain"
               />
-              <div className="mt-6 text-center">
+              <div className="mt-4 text-center">
                 <p className="text-white/80 text-sm">{selectedPhoto.location} · {selectedPhoto.date}</p>
                 {selectedPhoto.story && (
                   <p className="text-white/50 text-sm mt-3 max-w-lg mx-auto font-hand text-base italic">
                     "{selectedPhoto.story}"
                   </p>
                 )}
+              </div>
+              <div className="flex items-center gap-8 mt-5">
+                <button
+                  onClick={prev}
+                  className="text-white/60 hover:text-white text-sm transition-colors tracking-widest"
+                >
+                  上一张
+                </button>
+                <button
+                  onClick={close}
+                  className="text-white/60 hover:text-white text-sm transition-colors tracking-widest"
+                >
+                  关闭
+                </button>
+                <button
+                  onClick={next}
+                  className="text-white/60 hover:text-white text-sm transition-colors tracking-widest"
+                >
+                  下一张
+                </button>
               </div>
             </motion.div>
           </motion.div>
