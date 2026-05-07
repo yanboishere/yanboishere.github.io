@@ -102,7 +102,20 @@ export default function BlogPost() {
 
           <FadeIn delay={0.2}>
             <div className="blog-content text-gray-800 dark:text-gray-200">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content}</ReactMarkdown>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  img: ({ node, ...props }) => (
+                    <img
+                      {...props}
+                      loading="lazy"
+                      className="rounded-lg my-4 max-w-full h-auto"
+                    />
+                  ),
+                }}
+              >
+                {post.content}
+              </ReactMarkdown>
             </div>
           </FadeIn>
 
