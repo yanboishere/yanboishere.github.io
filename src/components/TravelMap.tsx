@@ -482,7 +482,7 @@ export default function TravelMap({ className }: TravelMapProps) {
           ))}
           <span className="text-gray-300 dark:text-gray-700">|</span>
           <span className="text-gray-500 dark:text-gray-400">
-            <span className="font-mono text-forest-600 dark:text-forest-400">{stats.points.toLocaleString()}</span> 个轨迹点
+            <span className="font-mono text-forest-600 dark:text-forest-400">406,550</span> 个点
           </span>
           <span className="text-gray-500 dark:text-gray-400">
             <span className="font-mono text-sunset-500">{stats.distance.toLocaleString()}</span> km

@@ -180,7 +180,9 @@ export default function Home() {
             </Link>
           </div>
           <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 -mt-4">
-            来自 40 万+ 个 GPS 数据点的真实轨迹。走过 20 个国家，每一条线都是一段故事。
+            来自 406,550 个 GPS 数据点的真实轨迹。走过 20 个国家，每一条线都是一段故事。
+            <br />
+            为保护隐私，部分数据进行了人为偏移处理。
           </p>
         </FadeIn>
         <FadeIn delay={0.15}>
