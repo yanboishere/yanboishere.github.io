@@ -12,6 +12,7 @@ const navItems = [
   { path: "/photos", label: "照片", emoji: "📷" },
   { path: "/about", label: "关于", emoji: "🫠" },
   { path: "/now", label: "现在", emoji: "📍" },
+  { path: "/friends", label: "友链", emoji: "🥰" },
 ];
 
 export default function Navbar() {

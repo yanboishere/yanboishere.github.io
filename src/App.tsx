@@ -9,6 +9,7 @@ import BlogPost from "@/pages/BlogPost";
 import Photos from "@/pages/Photos";
 import About from "@/pages/About";
 import Now from "@/pages/Now";
+import Friends from "@/pages/Friends";
 import { useEffect } from "react";
 
 function ScrollToTop() {
@@ -30,6 +31,7 @@ function AnimatedRoutes() {
         <Route path="/photos" element={<Photos />} />
         <Route path="/about" element={<About />} />
         <Route path="/now" element={<Now />} />
+        <Route path="/friends" element={<Friends />} />
         <Route
           path="*"
           element={
