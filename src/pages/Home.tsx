@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, MapPin } from "lucide-react";
-import { blogPosts } from "@/data/blog";
+import { loadBlogPosts, BlogPost } from "@/lib/blog-loader";
 import { photos } from "@/data/photos";
 import FadeIn from "@/components/FadeIn";
 import TravelMap from "@/components/TravelMap";
@@ -29,8 +29,15 @@ export default function Home() {
     }, 80);
     return () => clearInterval(interval);
   }, [greeting]);
-  const latestPosts = blogPosts.slice(0, 3);
+  const [latestPosts, setLatestPosts] = useState<BlogPost[]>([]);
   const featuredPhotos = photos.slice(0, 4);
+
+  useEffect(() => {
+    loadBlogPosts().then((posts) => {
+      const sorted = [...posts].sort((a, b) => b.date.localeCompare(a.date));
+      setLatestPosts(sorted.slice(0, 3));
+    });
+  }, []);
 
   return (
     <div className="min-h-screen">
