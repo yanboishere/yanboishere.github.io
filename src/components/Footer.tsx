@@ -28,7 +28,7 @@ export default function Footer() {
               <Twitter size={20} />
             </a>
             <a
-              href="https://github.com/yanbo2004"
+              href="https://github.com/yanboishere"
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 rounded-lg hover:bg-warm-100 dark:hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-800 dark:hover:text-gray-300"
@@ -37,7 +37,7 @@ export default function Footer() {
               <Github size={20} />
             </a>
             <a
-              href="https://space.bilibili.com"
+              href="https://b23.tv/DAle4go"
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 rounded-lg hover:bg-warm-100 dark:hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-800 dark:hover:text-gray-300"
@@ -46,7 +46,7 @@ export default function Footer() {
               <FaBilibili size={20} />
             </a>
             <a
-              href="https://www.xiaohongshu.com"
+              href="https://xhslink.com/m/AcJyEXf48H2"
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 rounded-lg hover:bg-warm-100 dark:hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-800 dark:hover:text-gray-300"
@@ -55,7 +55,7 @@ export default function Footer() {
               <SiXiaohongshu size={18} />
             </a>
             <a
-              href="https://www.instagram.com"
+              href="https://instagram.com/iam_yanbo"
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 rounded-lg hover:bg-warm-100 dark:hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-800 dark:hover:text-gray-300"
@@ -73,7 +73,7 @@ export default function Footer() {
               <FaYoutube size={22} />
             </a>
             <a
-              href="https://www.linkedin.com"
+              href="https://www.linkedin.com/in/yanboinweb3"
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 rounded-lg hover:bg-warm-100 dark:hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-800 dark:hover:text-gray-300"
@@ -82,7 +82,7 @@ export default function Footer() {
               <FaLinkedinIn size={18} />
             </a>
             <a
-              href="mailto:hi@yanbo.dev"
+              href="mailto:yanbo@work-work.org"
               className="p-2 rounded-lg hover:bg-warm-100 dark:hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-800 dark:hover:text-gray-300"
               aria-label="Email"
             >
