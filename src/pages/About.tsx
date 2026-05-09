@@ -44,7 +44,7 @@ export default function About() {
                     </h2>
                   <p className="text-forest-600 dark:text-forest-400 font-mono text-sm mb-4">@yanbo2004</p>
                   <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                    嘿，我是烟波。一个从大学退学的普通人，走过20个国家，还在路上。
+                    嘿，我是烟波。一个从大学休学的普通人，走过20个国家，还在路上。
                   </p>
                   <p className="text-gray-700 dark:text-gray-300 leading-relaxed mt-3">
                     现在的身份：数字游民 / 独立开发者 / 不太专业的旅行摄影师 / <a href="https://work-work.org" target="_blank" rel="noopener noreferrer" className="underline hover:text-forest-500">work-work.org</a>。
