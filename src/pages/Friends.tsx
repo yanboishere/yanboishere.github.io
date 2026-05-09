@@ -3,7 +3,8 @@ import FadeIn from "@/components/FadeIn";
 import PageTransition from "@/components/PageTransition";
 
 const friends = [
-  { name: "stv.pm", url: "https://blog.luoling.moe/" },
+  { name: "stv.pm", url: "https://stv.pm" },
+  { name: "luoling.moe", url: "https://blog.luoling.moe/" },
   { name: "seimo.cn", url: "https://seimo.cn" },
   { name: "skywt.net", url: "http://skywt.net" },
   { name: "men.ci", url: "https://men.ci" },
