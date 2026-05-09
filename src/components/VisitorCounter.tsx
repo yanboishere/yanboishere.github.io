@@ -1,15 +1,28 @@
 import { useState, useEffect } from "react";
 
-const STORAGE_KEY = "yanbo-visitor-count";
+const NAMESPACE = "yanboishere.github.io";
+const KEY = "page-hits";
 
 export default function VisitorCounter() {
   const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
-    const stored = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
-    const newCount = stored + 1;
-    localStorage.setItem(STORAGE_KEY, String(newCount));
-    setCount(newCount);
+    const sessionKey = "yanbo-visited";
+    const url = sessionStorage.getItem(sessionKey)
+      ? `https://api.countapi.xyz/get/${NAMESPACE}/${KEY}`
+      : `https://api.countapi.xyz/hit/${NAMESPACE}/${KEY}`;
+
+    fetch(url)
+      .then((res) => res.json())
+      .then((data) => {
+        if (typeof data.value === "number") {
+          setCount(data.value);
+        }
+        if (!sessionStorage.getItem(sessionKey)) {
+          sessionStorage.setItem(sessionKey, "1");
+        }
+      })
+      .catch(() => setCount(null));
   }, []);
 
   if (count === null) return null;
