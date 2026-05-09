@@ -28,3 +28,7 @@ dist-ssr
 backUpData-all.csv
 *.csv
 scripts/process-tracks.mjs
+
+# Longbridge OAuth tokens
+.longbridge/
+.longbridge-token.json

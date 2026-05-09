@@ -24,6 +24,13 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Fetch Longbridge portfolio
+        if: env.LONGBRIDGE_APP_KEY != ''
+        env:
+          LONGBRIDGE_APP_KEY: ${{ secrets.LONGBRIDGE_APP_KEY }}
+          LONGBRIDGE_APP_SECRET: ${{ secrets.LONGBRIDGE_APP_SECRET }}
+          LONGBRIDGE_ACCESS_TOKEN: ${{ secrets.LONGBRIDGE_ACCESS_TOKEN }}
+        run: node scripts/fetch-portfolio.mjs
       - run: npm run build
       - name: Copy index.html to 404.html for SPA routing
         run: cp dist/index.html dist/404.html

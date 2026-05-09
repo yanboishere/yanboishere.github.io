@@ -63,8 +63,65 @@ export default function TravelMap({ className }: TravelMapProps) {
     setAnimating(false);
   }, []);
 
+  const animateRoute = useCallback(
+    (map: L.Map, coords: L.LatLngExpression[], color: string, maxZoom: number) => {
+      if (coords.length === 0) return;
+
+      const glowLine = L.polyline(coords, {
+        color,
+        weight: 8,
+        opacity: 0.2,
+        smoothFactor: 1,
+        lineCap: "round",
+        lineJoin: "round",
+      }).addTo(map);
+      layersRef.current.push(glowLine);
+
+      map.fitBounds(L.latLngBounds(coords), { padding: [40, 40], maxZoom });
+
+      const animLine = L.polyline([], {
+        color,
+        weight: 3.5,
+        opacity: 1,
+        smoothFactor: 1,
+        lineCap: "round",
+        lineJoin: "round",
+      }).addTo(map);
+      layersRef.current.push(animLine);
+
+      setAnimating(true);
+      const ANIM_DURATION = 15000;
+      const totalPoints = coords.length;
+      const startTime = performance.now();
+
+      function animate(now: number) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / ANIM_DURATION, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const idx = Math.min(Math.floor(eased * totalPoints), totalPoints);
+        animLine.setLatLngs(coords.slice(0, idx));
+        if (progress < 1) {
+          animFrameRef.current = requestAnimationFrame(animate);
+        } else {
+          animFrameRef.current = 0;
+          setAnimating(false);
+        }
+      }
+      animFrameRef.current = requestAnimationFrame(animate);
+
+      let dist = 0;
+      for (let i = 1; i < coords.length; i++) {
+        const a = coords[i - 1] as [number, number];
+        const b = coords[i] as [number, number];
+        dist += haversineKm(a[0], a[1], b[0], b[1]);
+      }
+      setStats({ points: coords.length, distance: Math.round(dist) });
+    },
+    []
+  );
+
   const renderRoutes = useCallback(
-    (map: L.Map, data: RawPoint[], month: MonthInfo | null) => {
+    (map: L.Map, data: RawPoint[], month: MonthInfo | null, year?: string | null) => {
       clearLayers(map);
 
       if (month) {
@@ -93,56 +150,37 @@ export default function TravelMap({ className }: TravelMapProps) {
 
         if (filteredCoords.length > 0) {
           const color = YEAR_COLORS[month.year.toString()] || "#dda75c";
+          animateRoute(map, filteredCoords, color, 12);
+        } else {
+          setStats({ points: 0, distance: 0 });
+        }
+      } else if (year) {
+        const yearCoords: L.LatLngExpression[] = [];
+        const dimCoords: L.LatLngExpression[] = [];
 
-          const glowLine = L.polyline(filteredCoords, {
-            color,
-            weight: 8,
-            opacity: 0.2,
-            smoothFactor: 1,
+        for (const p of data) {
+          const pYear = new Date(p[2] * 1000).getFullYear().toString();
+          if (pYear === year) {
+            yearCoords.push([p[0], p[1]]);
+          } else {
+            dimCoords.push([p[0], p[1]]);
+          }
+        }
+
+        if (dimCoords.length > 0) {
+          const dimLine = L.polyline(dimCoords, {
+            color: isDarkRef.current ? "rgba(255,255,255,0.06)" : "rgba(111,78,55,0.06)",
+            weight: 2,
+            smoothFactor: 1.5,
             lineCap: "round",
             lineJoin: "round",
           }).addTo(map);
-          layersRef.current.push(glowLine);
+          layersRef.current.push(dimLine);
+        }
 
-          map.fitBounds(L.latLngBounds(filteredCoords), { padding: [40, 40], maxZoom: 12 });
-
-          const animLine = L.polyline([], {
-            color,
-            weight: 3.5,
-            opacity: 1,
-            smoothFactor: 1,
-            lineCap: "round",
-            lineJoin: "round",
-          }).addTo(map);
-          layersRef.current.push(animLine);
-
-          setAnimating(true);
-          const ANIM_DURATION = 15000;
-          const totalPoints = filteredCoords.length;
-          const startTime = performance.now();
-
-          function animate(now: number) {
-            const elapsed = now - startTime;
-            const progress = Math.min(elapsed / ANIM_DURATION, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            const idx = Math.min(Math.floor(eased * totalPoints), totalPoints);
-            animLine.setLatLngs(filteredCoords.slice(0, idx));
-            if (progress < 1) {
-              animFrameRef.current = requestAnimationFrame(animate);
-            } else {
-              animFrameRef.current = 0;
-              setAnimating(false);
-            }
-          }
-          animFrameRef.current = requestAnimationFrame(animate);
-
-          let dist = 0;
-          for (let i = 1; i < filteredCoords.length; i++) {
-            const a = filteredCoords[i - 1] as [number, number];
-            const b = filteredCoords[i] as [number, number];
-            dist += haversineKm(a[0], a[1], b[0], b[1]);
-          }
-          setStats({ points: filteredCoords.length, distance: Math.round(dist) });
+        if (yearCoords.length > 0) {
+          const color = YEAR_COLORS[year] || "#dda75c";
+          animateRoute(map, yearCoords, color, 5);
         } else {
           setStats({ points: 0, distance: 0 });
         }
@@ -160,12 +198,12 @@ export default function TravelMap({ className }: TravelMapProps) {
 
         const grouped: Record<string, L.LatLngExpression[]> = {};
         for (const p of data) {
-          const year = new Date(p[2] * 1000).getFullYear().toString();
-          if (!grouped[year]) grouped[year] = [];
-          grouped[year].push([p[0], p[1]]);
+          const yr = new Date(p[2] * 1000).getFullYear().toString();
+          if (!grouped[yr]) grouped[yr] = [];
+          grouped[yr].push([p[0], p[1]]);
         }
-        for (const [year, pts] of Object.entries(grouped)) {
-          const color = YEAR_COLORS[year] || "#dda75c";
+        for (const [yr, pts] of Object.entries(grouped)) {
+          const color = YEAR_COLORS[yr] || "#dda75c";
           const line = L.polyline(pts, {
             color,
             weight: 2.5,
@@ -188,15 +226,15 @@ export default function TravelMap({ className }: TravelMapProps) {
         setStats({ points: data.length, distance: Math.round(totalDist) });
       }
     },
-    [clearLayers]
+    [clearLayers, animateRoute]
   );
 
   const replayRoute = useCallback(() => {
     const map = mapInstanceRef.current;
     const data = rawDataRef.current;
     if (!map || data.length === 0 || !selectedMonth) return;
-    renderRoutes(map, data, selectedMonth);
-  }, [selectedMonth, renderRoutes]);
+    renderRoutes(map, data, selectedMonth, selectedYear);
+  }, [selectedMonth, selectedYear, renderRoutes]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -277,8 +315,8 @@ export default function TravelMap({ className }: TravelMapProps) {
     const map = mapInstanceRef.current;
     const data = rawDataRef.current;
     if (!map || data.length === 0) return;
-    renderRoutes(map, data, selectedMonth);
-  }, [selectedMonth, renderRoutes]);
+    renderRoutes(map, data, selectedMonth, selectedYear);
+  }, [selectedMonth, selectedYear, renderRoutes]);
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -296,12 +334,12 @@ export default function TravelMap({ className }: TravelMapProps) {
       tileLayerRef.current = newTile;
 
       if (rawDataRef.current.length > 0) {
-        renderRoutes(map, rawDataRef.current, selectedMonth);
+        renderRoutes(map, rawDataRef.current, selectedMonth, selectedYear);
       }
     });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     return () => observer.disconnect();
-  }, [selectedMonth, renderRoutes]);
+  }, [selectedMonth, selectedYear, renderRoutes]);
 
   const handleYearClick = (year: string) => {
     if (selectedYear === year) {
@@ -376,7 +414,7 @@ export default function TravelMap({ className }: TravelMapProps) {
                 >
                   {"← 返回"}
                 </button>
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-1 mb-2">
                   {(groupedByYear[selectedYear] || []).map((m) => (
                     <button
                       key={m.key}
@@ -387,6 +425,12 @@ export default function TravelMap({ className }: TravelMapProps) {
                     </button>
                   ))}
                 </div>
+                <button
+                  onClick={handleReset}
+                  className="w-full text-xs text-center py-1.5 rounded-lg bg-warm-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-warm-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  🌍 查看全部轨迹
+                </button>
               </div>
             )}
 
@@ -436,6 +480,22 @@ export default function TravelMap({ className }: TravelMapProps) {
         </div>
       )}
 
+      {!loading && selectedYear && !selectedMonth && stats.points > 0 && (
+        <div className="absolute top-3 right-3 z-[1000]">
+          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg shadow-lg shadow-black/10 border border-warm-200/50 dark:border-gray-700/50 px-3 py-2">
+            <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
+              {selectedYear}年 我的轨迹
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              {stats.points.toLocaleString()} 个点 · {stats.distance.toLocaleString()} km
+              {animating && (
+                <span className="ml-1.5 inline-block text-forest-500 animate-pulse">▸ 回放中</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {!loading && selectedMonth && (
         <div className="absolute top-3 right-3 z-[1000]">
           <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg shadow-lg shadow-black/10 border border-warm-200/50 dark:border-gray-700/50 px-3 py-2">
@@ -472,7 +532,7 @@ export default function TravelMap({ className }: TravelMapProps) {
         </div>
       )}
 
-      {!loading && stats.points > 0 && !selectedMonth && (
+      {!loading && stats.points > 0 && !selectedMonth && !selectedYear && (
         <div className="mt-4 flex flex-wrap items-center justify-center gap-4 md:gap-6 text-sm">
           {Object.entries(YEAR_COLORS).map(([year, color]) => (
             <div key={year} className="flex items-center gap-2">

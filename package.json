@@ -16,6 +16,7 @@
     "framer-motion": "^12.38.0",
     "gray-matter": "^4.0.3",
     "leaflet": "1.9",
+    "longbridge": "^4.0.5",
     "lucide-react": "^0.511.0",
     "marked": "^18.0.3",
     "react": "^18.3.1",

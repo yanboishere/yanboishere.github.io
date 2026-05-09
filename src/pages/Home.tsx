@@ -6,6 +6,7 @@ import { blogPosts } from "@/data/blog";
 import { photos } from "@/data/photos";
 import FadeIn from "@/components/FadeIn";
 import TravelMap from "@/components/TravelMap";
+import Portfolio from "@/components/Portfolio";
 
 const greetings = [
   "啊！！！你来啦 🎉",
@@ -77,7 +78,7 @@ export default function Home() {
               </span>
               <span className="hidden md:inline text-warm-300">|</span>
               <span className="px-3 py-1 rounded-full bg-forest-50 dark:bg-forest-900/30 border border-forest-200/50 dark:border-forest-800/50 text-forest-700 dark:text-forest-400">
-                Building @WorkWorkOrg 🚀
+                如果你也是远程工作者，来玩啊 → <a href="https://work-work.org" target="_blank" rel="noopener noreferrer" className="underline hover:text-forest-500">work-work.org</a> 🚀
               </span>
             </div>
 
@@ -190,12 +191,26 @@ export default function Home() {
         </FadeIn>
       </section>
 
+      {/* portfolio */}
+      <section className="container max-w-4xl mx-auto px-4 py-16">
+        <FadeIn>
+          <div className="flex items-center justify-between mb-10">
+            <h2 className="font-display text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
+              当前股票持仓 💰
+            </h2>
+          </div>
+        </FadeIn>
+        <FadeIn delay={0.15}>
+          <Portfolio />
+        </FadeIn>
+      </section>
+
       {/* featured photos */}
       <section className="container max-w-4xl mx-auto px-4 py-16">
         <FadeIn>
           <div className="flex items-center justify-between mb-10">
             <h2 className="font-display text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
-              随手拍 📷
+              随手拍 📷（更新中）
             </h2>
             <Link
               to="/photos"
