@@ -135,7 +135,7 @@ export default function Portfolio() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    const interval = setInterval(fetchData, 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -289,7 +289,7 @@ export default function Portfolio() {
       )}
 
       <p className="text-xs text-gray-400 dark:text-gray-500 text-right">
-        数据更新于 {new Date(data.updatedAt).toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })} · 每5分钟刷新 · 汇率 USD/HKD {data.usdHkdRate?.toFixed(4)}
+        数据更新于 {new Date(data.updatedAt).toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })} · 每分钟刷新 · 汇率 USD/HKD {data.usdHkdRate?.toFixed(4)}
         {lastFetch && <span className="ml-2">· 页面刷新于 {lastFetch}</span>}
       </p>
     </div>
