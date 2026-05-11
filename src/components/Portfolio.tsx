@@ -120,15 +120,23 @@ export default function Portfolio() {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [lastFetch, setLastFetch] = useState<string>("");
 
-  useEffect(() => {
-    fetch("/portfolio.json")
+  const fetchData = () => {
+    fetch(`/portfolio.json?t=${Date.now()}`)
       .then((r) => r.json())
       .then((d) => {
         setData(d);
+        setLastFetch(new Date().toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }));
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) {
@@ -281,7 +289,8 @@ export default function Portfolio() {
       )}
 
       <p className="text-xs text-gray-400 dark:text-gray-500 text-right">
-        更新于 {new Date(data.updatedAt).toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" })} · 港股收盘 16:00 & 美股收盘 04:00 各更新一次 · 汇率 USD/HKD {data.usdHkdRate?.toFixed(4)}
+        数据更新于 {new Date(data.updatedAt).toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })} · 每5分钟刷新 · 汇率 USD/HKD {data.usdHkdRate?.toFixed(4)}
+        {lastFetch && <span className="ml-2">· 页面刷新于 {lastFetch}</span>}
       </p>
     </div>
   );
