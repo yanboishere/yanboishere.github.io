@@ -20,6 +20,7 @@ interface Position {
   unrealizedPnlInHKD: number;
   dailyPnlInHKD: number;
   percentageOfPortfolio: number;
+  session?: string;
 }
 
 interface PortfolioData {
@@ -264,6 +265,8 @@ export default function Portfolio() {
                         {pos.name}
                       </h4>
                       <span className="text-xs text-gray-400 font-smiley flex-shrink-0">{pos.symbol}</span>
+                      {pos.session === "pre" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">盘前</span>}
+                      {pos.session === "post" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">盘后</span>}
                     </div>
                     <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       <span className="font-smiley">{pos.quantity} 股</span>

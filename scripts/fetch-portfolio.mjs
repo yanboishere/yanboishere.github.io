@@ -116,10 +116,36 @@ async function main() {
       try {
         const quotes = await quoteCtx.quote(symbols);
         for (const q of quotes) {
+          let lastDone = Number(q.lastDone) || 0;
+          let prevClose = Number(q.prevClose) || 0;
+          let sessionLabel = "main";
+
+          const pmq = q.postMarketQuote;
+          const preq = q.preMarketQuote;
+
+          if (pmq && pmq.lastDone) {
+            const pmLast = Number(pmq.lastDone) || 0;
+            if (pmLast > 0) {
+              lastDone = pmLast;
+              prevClose = Number(pmq.prevClose) || prevClose;
+              sessionLabel = "post";
+            }
+          } else if (preq && preq.lastDone) {
+            const preLast = Number(preq.lastDone) || 0;
+            if (preLast > 0) {
+              lastDone = preLast;
+              prevClose = Number(preq.prevClose) || prevClose;
+              sessionLabel = "pre";
+            }
+          }
+
+          const changeRate = prevClose > 0 ? ((lastDone - prevClose) / prevClose) * 100 : 0;
+
           quoteMap[q.symbol] = {
-            lastDone: Number(q.lastDone) || 0,
-            prevClose: Number(q.prevClose) || 0,
-            changeRate: Number(q.changeRate) || 0,
+            lastDone,
+            prevClose,
+            changeRate: Number(changeRate.toFixed(4)),
+            session: sessionLabel,
           };
         }
       } catch (e) {
@@ -148,6 +174,7 @@ async function main() {
         lastDone: last,
         prevClose: prev,
         changeRate: q.changeRate || 0,
+        session: q.session || "main",
         dailyPnl,
         dailyPnlPercent: Number(dailyPnlPercent.toFixed(4)),
         marketValInHKD: 0,
