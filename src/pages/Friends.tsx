@@ -8,6 +8,7 @@ const friends = [
   { name: "seimo.cn", url: "https://seimo.cn" },
   { name: "skywt.net", url: "http://skywt.net" },
   { name: "men.ci", url: "https://men.ci" },
+  { name: "blog.wssh.dev", url: "https://blog.wssh.dev" },
 ];
 
 export default function Friends() {
