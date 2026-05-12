@@ -127,14 +127,23 @@ export default function Portfolio() {
   const [lastFetch, setLastFetch] = useState<string>("");
 
   const fetchData = () => {
-    fetch(`/portfolio.json?t=${Date.now()}`)
+    fetch("https://raw.githubusercontent.com/yanboishere/yanboishere.github.io/master/public/portfolio.json")
       .then((r) => r.json())
       .then((d) => {
         setData(d);
         setLastFetch(new Date().toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }));
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        fetch("/portfolio.json")
+          .then((r) => r.json())
+          .then((d) => {
+            setData(d);
+            setLastFetch(new Date().toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }));
+            setLoading(false);
+          })
+          .catch(() => setLoading(false));
+      });
   };
 
   useEffect(() => {
@@ -301,7 +310,7 @@ export default function Portfolio() {
       )}
 
       <p className="text-xs text-gray-400 dark:text-gray-500 text-right">
-        数据更新于 {new Date(data.updatedAt).toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })} · 每分钟刷新 · 汇率 USD/HKD {data.usdHkdRate?.toFixed(4)}
+        数据更新于 {new Date(data.updatedAt).toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })} · 每分钟检查新数据 · 汇率 USD/HKD {data.usdHkdRate?.toFixed(4)}
         {lastFetch && <span className="ml-2">· 页面刷新于 {lastFetch}</span>}
       </p>
     </div>
