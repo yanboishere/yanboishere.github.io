@@ -12,9 +12,13 @@ interface Position {
   unrealizedPnl: number;
   realizedPnl: number;
   lastDone: number;
+  prevClose: number;
   changeRate: number;
+  dailyPnl: number;
+  dailyPnlPercent: number;
   marketValInHKD: number;
   unrealizedPnlInHKD: number;
+  dailyPnlInHKD: number;
   percentageOfPortfolio: number;
 }
 
@@ -158,7 +162,9 @@ export default function Portfolio() {
 
   const totalMarketValHKD = data.positions.reduce((s, p) => s + p.marketValInHKD, 0);
   const totalUnrealizedPnlHKD = data.positions.reduce((s, p) => s + p.unrealizedPnlInHKD, 0);
+  const totalDailyPnlHKD = data.positions.reduce((s, p) => s + (p.dailyPnlInHKD || 0), 0);
   const pnlPositive = totalUnrealizedPnlHKD >= 0;
+  const dailyPnlPositive = totalDailyPnlHKD >= 0;
 
   const currencySymbol = (currency: string) => {
     if (currency === "HKD") return "HK$";
@@ -187,10 +193,11 @@ export default function Portfolio() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: "持仓市值 (HKD)", value: formatCurrency(totalMarketValHKD, "HKD"), color: "text-gray-900 dark:text-gray-100" },
           { label: "未实现盈亏 (HKD)", value: formatPnl(totalUnrealizedPnlHKD, "HKD"), color: pnlPositive ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400" },
+          { label: "今日盈亏 (HKD)", value: formatPnl(totalDailyPnlHKD, "HKD"), color: dailyPnlPositive ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400" },
           { label: "持仓数量", value: `${data.positions.length} 只`, color: "text-gray-900 dark:text-gray-100" },
         ].map((card, i) => (
           <motion.div
@@ -262,6 +269,11 @@ export default function Portfolio() {
                   <p className={`text-xs font-smiley ${pos.unrealizedPnl >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
                     {formatPnl(pos.unrealizedPnl, pos.currency)} ({formatPercent(pos.costPrice, pos.quantity, pos.lastDone)})
                   </p>
+                  {pos.dailyPnl != null && (
+                    <p className={`text-[11px] font-smiley ${pos.dailyPnl >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                      今日 {formatPnl(pos.dailyPnl, pos.currency)} ({pos.dailyPnlPercent > 0 ? "+" : ""}{pos.dailyPnlPercent?.toFixed(2)}%)
+                    </p>
+                  )}
                 </div>
               </div>
 

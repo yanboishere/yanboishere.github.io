@@ -128,27 +128,36 @@ async function main() {
     }
 
     positions = allPositions.map((p) => {
+      const q = quoteMap[p.symbol] || {};
+      const qty = Number(p.quantity) || 0;
+      const cost = Number(p.costPrice) || 0;
+      const last = q.lastDone || 0;
+      const prev = q.prevClose || 0;
+      const dailyPnl = prev > 0 ? (last - prev) * qty : 0;
+      const dailyPnlPercent = prev > 0 ? ((last - prev) / prev) * 100 : 0;
+
       const pos = {
         symbol: p.symbol,
         name: p.symbolName || p.symbol.split(".")[0],
-        quantity: Number(p.quantity) || 0,
+        quantity: qty,
         availableQuantity: Number(p.availableQuantity) || 0,
         currency: p.currency || "HKD",
-        costPrice: Number(p.costPrice) || 0,
-        marketVal: quoteMap[p.symbol]
-          ? Number(p.quantity) * quoteMap[p.symbol].lastDone
-          : Number(p.quantity) * Number(p.costPrice) || 0,
-        unrealizedPnl: quoteMap[p.symbol]
-          ? (quoteMap[p.symbol].lastDone - Number(p.costPrice)) * Number(p.quantity)
-          : 0,
-        lastDone: quoteMap[p.symbol]?.lastDone || 0,
-        changeRate: quoteMap[p.symbol]?.changeRate || 0,
+        costPrice: cost,
+        marketVal: last > 0 ? qty * last : qty * cost || 0,
+        unrealizedPnl: last > 0 ? (last - cost) * qty : 0,
+        lastDone: last,
+        prevClose: prev,
+        changeRate: q.changeRate || 0,
+        dailyPnl,
+        dailyPnlPercent: Number(dailyPnlPercent.toFixed(4)),
         marketValInHKD: 0,
         unrealizedPnlInHKD: 0,
+        dailyPnlInHKD: 0,
         percentageOfPortfolio: 0,
       };
       pos.marketValInHKD = marketValInHKD(pos, usdHkdRate);
       pos.unrealizedPnlInHKD = unrealizedPnlInHKD(pos, usdHkdRate);
+      pos.dailyPnlInHKD = pos.currency === "USD" ? dailyPnl * usdHkdRate : dailyPnl;
       return pos;
     });
 
