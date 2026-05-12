@@ -126,12 +126,26 @@ export default function Portfolio() {
   const [expanded, setExpanded] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [lastFetch, setLastFetch] = useState<string>("");
+  const [timeAgo, setTimeAgo] = useState("");
+
+  const updateTimeAgo = (updatedAt: string) => {
+    const now = Date.now();
+    const diffMs = now - new Date(updatedAt).getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) setTimeAgo("刚刚");
+    else if (diffMin < 60) setTimeAgo(`${diffMin} 分钟前`);
+    else {
+      const diffHr = Math.floor(diffMin / 60);
+      setTimeAgo(`${diffHr} 小时前`);
+    }
+  };
 
   const fetchData = () => {
     fetch("https://raw.githubusercontent.com/yanboishere/yanboishere.github.io/master/public/portfolio.json")
       .then((r) => r.json())
       .then((d) => {
         setData(d);
+        updateTimeAgo(d.updatedAt);
         setLastFetch(new Date().toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }));
         setLoading(false);
       })
@@ -140,6 +154,7 @@ export default function Portfolio() {
           .then((r) => r.json())
           .then((d) => {
             setData(d);
+            updateTimeAgo(d.updatedAt);
             setLastFetch(new Date().toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }));
             setLoading(false);
           })
@@ -149,9 +164,17 @@ export default function Portfolio() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 60 * 1000);
+    const interval = setInterval(() => {
+      fetchData();
+    }, 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!data?.updatedAt) return;
+    const timer = setInterval(() => updateTimeAgo(data.updatedAt), 30000);
+    return () => clearInterval(timer);
+  }, [data?.updatedAt]);
 
   if (loading) {
     return (
@@ -192,6 +215,7 @@ export default function Portfolio() {
 
   const formatPercent = (cost: number, quantity: number, lastDone: number) => {
     if (!cost || !quantity || !lastDone) return null;
+    if (cost < 0) return null;
     const pnl = (lastDone - cost) * quantity;
     const base = cost * quantity;
     if (!base) return null;
@@ -279,8 +303,13 @@ export default function Portfolio() {
                     {formatCurrency(pos.marketVal, pos.currency)}
                   </p>
                   <p className={`text-xs font-smiley ${pos.unrealizedPnl >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
-                    {formatPnl(pos.unrealizedPnl, pos.currency)} ({formatPercent(pos.costPrice, pos.quantity, pos.lastDone)})
+                    {formatPnl(pos.unrealizedPnl, pos.currency)} {formatPercent(pos.costPrice, pos.quantity, pos.lastDone) ? `(${formatPercent(pos.costPrice, pos.quantity, pos.lastDone)})` : ""}
                   </p>
+                  {pos.costPrice < 0 && (
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
+                      负成本 = 已通过减仓/分红收回成本，剩余为纯利润
+                    </p>
+                  )}
                   {pos.dailyPnl != null && (
                     <p className={`text-[11px] font-smiley ${pos.dailyPnl >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
                       今日 {formatPnl(pos.dailyPnl, pos.currency)} ({pos.dailyPnlPercent > 0 ? "+" : ""}{pos.dailyPnlPercent?.toFixed(2)}%)
@@ -313,8 +342,18 @@ export default function Portfolio() {
       )}
 
       <p className="text-xs text-gray-400 dark:text-gray-500 text-right">
-        数据更新于 {new Date(data.updatedAt).toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })} · 每分钟检查新数据 · 汇率 USD/HKD {data.usdHkdRate?.toFixed(4)}
-        {lastFetch && <span className="ml-2">· 页面刷新于 {lastFetch}</span>}
+        {(() => {
+          const diffMin = Math.floor((Date.now() - new Date(data.updatedAt).getTime()) / 60000);
+          const isStale = diffMin > 10;
+          const absTime = new Date(data.updatedAt).toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+          return (
+            <>
+              {isStale && <span className="text-amber-500 dark:text-amber-400 mr-1">⚠ 数据更新可能异常</span>}
+              数据更新于 {timeAgo}（{absTime}）{isStale ? "" : " · 更新正常 ✓"}
+            </>
+          );
+        })()}
+        {" · 每分钟检查 · 汇率 USD/HKD "}{data.usdHkdRate?.toFixed(4)}
       </p>
     </div>
   );
