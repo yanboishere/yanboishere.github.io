@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - name: Fetch Longbridge portfolio
@@ -23,7 +23,7 @@ jobs:
           LONGBRIDGE_APP_KEY: ${{ secrets.LONGBRIDGE_APP_KEY }}
           LONGBRIDGE_APP_SECRET: ${{ secrets.LONGBRIDGE_APP_SECRET }}
           LONGBRIDGE_ACCESS_TOKEN: ${{ secrets.LONGBRIDGE_ACCESS_TOKEN }}
-        run: node scripts/fetch-portfolio.mjs
+        run: node scripts/fetch-portfolio.mjs || echo "Fetch failed, keeping existing data"
       - name: Commit and push if changed
         run: |
           git config user.name "github-actions[bot]"

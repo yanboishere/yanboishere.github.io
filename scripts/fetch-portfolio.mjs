@@ -81,8 +81,20 @@ async function main() {
     return;
   }
 
-  const ctx = TradeContext.new(config);
-  const quoteCtx = QuoteContext.new(config);
+  let ctx, quoteCtx;
+  try {
+    ctx = TradeContext.new(config);
+    quoteCtx = QuoteContext.new(config);
+  } catch (e) {
+    console.error("Failed to create contexts:", e.message);
+    if (fs.existsSync(OUTPUT_FILE)) {
+      console.log("Using existing portfolio.json");
+    } else {
+      const empty = { updatedAt: new Date().toISOString(), balance: null, positions: [], fetched: false };
+      fs.writeFileSync(OUTPUT_FILE, JSON.stringify(empty, null, 2));
+    }
+    return;
+  }
 
   const usdHkdRate = await fetchExchangeRate(quoteCtx);
 
