@@ -48,7 +48,16 @@ export default function TravelMap({ className }: TravelMapProps) {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ points: 0, distance: 0 });
   const [animating, setAnimating] = useState(false);
+  const [paused, setPaused] = useState(false);
 
+  const pausedRef = useRef(false);
+  const pausedAtRef = useRef(0);
+  const totalPausedRef = useRef(0);
+  const animStartTimeRef = useRef(0);
+  const animCoordsRef = useRef<L.LatLngExpression[]>([]);
+  const animLineRef = useRef<L.Polyline | null>(null);
+  const animColorRef = useRef("");
+  const animMaxZoomRef = useRef(5);
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<MonthInfo | null>(null);
   const [availableMonths, setAvailableMonths] = useState<MonthInfo[]>([]);
@@ -61,6 +70,12 @@ export default function TravelMap({ className }: TravelMapProps) {
     for (const layer of layersRef.current) map.removeLayer(layer);
     layersRef.current = [];
     setAnimating(false);
+    setPaused(false);
+    pausedRef.current = false;
+    pausedAtRef.current = 0;
+    totalPausedRef.current = 0;
+    animLineRef.current = null;
+    animCoordsRef.current = [];
   }, []);
 
   const animateRoute = useCallback(
@@ -88,14 +103,27 @@ export default function TravelMap({ className }: TravelMapProps) {
         lineJoin: "round",
       }).addTo(map);
       layersRef.current.push(animLine);
+      animLineRef.current = animLine;
+      animCoordsRef.current = coords;
+      animColorRef.current = color;
+      animMaxZoomRef.current = maxZoom;
 
       setAnimating(true);
+      setPaused(false);
+      pausedRef.current = false;
+      pausedAtRef.current = 0;
+      totalPausedRef.current = 0;
       const ANIM_DURATION = 15000;
       const totalPoints = coords.length;
       const startTime = performance.now();
+      animStartTimeRef.current = startTime;
 
       function animate(now: number) {
-        const elapsed = now - startTime;
+        if (pausedRef.current) {
+          animFrameRef.current = requestAnimationFrame(animate);
+          return;
+        }
+        const elapsed = now - startTime - totalPausedRef.current;
         const progress = Math.min(elapsed / ANIM_DURATION, 1);
         const eased = 1 - Math.pow(1 - progress, 3);
         const idx = Math.min(Math.floor(eased * totalPoints), totalPoints);
@@ -119,6 +147,19 @@ export default function TravelMap({ className }: TravelMapProps) {
     },
     []
   );
+
+  const togglePause = useCallback(() => {
+    if (!animating) return;
+    if (pausedRef.current) {
+      totalPausedRef.current += performance.now() - pausedAtRef.current;
+      pausedRef.current = false;
+      setPaused(false);
+    } else {
+      pausedAtRef.current = performance.now();
+      pausedRef.current = true;
+      setPaused(true);
+    }
+  }, [animating]);
 
   const renderRoutes = useCallback(
     (map: L.Map, data: RawPoint[], month: MonthInfo | null, year?: string | null) => {
@@ -489,7 +530,12 @@ export default function TravelMap({ className }: TravelMapProps) {
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               {stats.points.toLocaleString()} 个点 · {stats.distance.toLocaleString()} km
               {animating && (
-                <span className="ml-1.5 inline-block text-forest-500 animate-pulse">▸ 回放中</span>
+                <button
+                  onClick={togglePause}
+                  className="ml-1.5 inline-block text-forest-500 hover:text-forest-600 dark:text-forest-400 dark:hover:text-forest-300 transition-colors cursor-pointer"
+                >
+                  {paused ? "⏸ 已暂停" : "▸ 回放中"}
+                </button>
               )}
             </div>
           </div>
@@ -506,7 +552,12 @@ export default function TravelMap({ className }: TravelMapProps) {
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 {stats.points.toLocaleString()} 个点 · {stats.distance.toLocaleString()} km
                 {animating ? (
-                  <span className="ml-1.5 inline-block text-forest-500 animate-pulse">▸ 回放中</span>
+                  <button
+                    onClick={togglePause}
+                    className="ml-1.5 inline-block text-forest-500 hover:text-forest-600 dark:text-forest-400 dark:hover:text-forest-300 transition-colors cursor-pointer"
+                  >
+                    {paused ? "⏸ 已暂停" : "▸ 回放中"}
+                  </button>
                 ) : (
                   <button
                     onClick={replayRoute}
