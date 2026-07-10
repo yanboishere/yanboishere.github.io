@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, MapPin } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { loadBlogPosts, BlogPost } from "@/lib/blog-loader";
 import { photos } from "@/data/photos";
 import FadeIn from "@/components/FadeIn";
+import PageTransition from "@/components/PageTransition";
 import TravelMap from "@/components/TravelMap";
 import Portfolio from "@/components/Portfolio";
+import RecentWriting from "@/components/RecentWriting";
 
 const greetings = [
   "啊！！！你来啦 🎉",
@@ -35,11 +37,12 @@ export default function Home() {
   useEffect(() => {
     loadBlogPosts().then((posts) => {
       const sorted = [...posts].sort((a, b) => b.date.localeCompare(a.date));
-      setLatestPosts(sorted.slice(0, 3));
+      setLatestPosts(sorted.slice(0, 5));
     });
   }, []);
 
   return (
+    <PageTransition>
     <div className="min-h-screen">
       {/* hero section — 我想要这个区域很大气但又很 relax */}
       <section className="relative pt-16 overflow-hidden">
@@ -81,7 +84,7 @@ export default function Home() {
               </span>
               <span className="hidden md:inline text-warm-300">|</span>
               <span className="px-3 py-1 rounded-full bg-warm-100 dark:bg-gray-800 border border-warm-200/50 dark:border-gray-700/50">
-                🎒 Backpacking 20 countries
+                🎒 Backpacking 21 countries
               </span>
               <span className="hidden md:inline text-warm-300">|</span>
               <span className="px-3 py-1 rounded-full bg-forest-50 dark:bg-forest-900/30 border border-forest-200/50 dark:border-forest-800/50 text-forest-700 dark:text-forest-400">
@@ -116,61 +119,16 @@ export default function Home() {
       {/* latest blog posts */}
       <section className="container max-w-4xl mx-auto px-4 py-16">
         <FadeIn>
-          <div className="flex items-center justify-between mb-10">
-            <h2 className="font-display text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
-              最近写了点啥 ✍️
-            </h2>
+          <RecentWriting posts={latestPosts} />
+          <div className="mt-8 text-right">
             <Link
               to="/blog"
-              className="text-sm text-forest-600 dark:text-forest-400 hover:text-forest-700 dark:hover:text-forest-300 flex items-center gap-1 transition-colors"
+              className="text-sm text-gray-400 dark:text-gray-500 hover:text-forest-600 dark:hover:text-forest-400 inline-flex items-center gap-1 transition-colors"
             >
-              全部 <ArrowRight size={16} />
+              全部文章 <ArrowRight size={14} />
             </Link>
           </div>
         </FadeIn>
-
-        <div className="grid gap-6">
-          {latestPosts.map((post, i) => (
-            <FadeIn key={post.slug} delay={i * 0.1}>
-              <Link
-                to={`/blog/${post.slug}`}
-                className="group block p-6 rounded-2xl bg-white/60 dark:bg-gray-900/60 border border-warm-200/40 dark:border-gray-800/40 hover:border-warm-300/60 dark:hover:border-gray-700/60 hover:shadow-lg hover:shadow-warm-200/20 dark:hover:shadow-gray-900/20 transition-all duration-300"
-              >
-                <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-500 mb-2">
-                  <span>{post.date}</span>
-                  {post.location && (
-                    <>
-                      <span>·</span>
-                      <span className="flex items-center gap-1">
-                        <MapPin size={14} /> {post.location}
-                      </span>
-                    </>
-                  )}
-                  {post.mood && (
-                    <>
-                      <span>·</span>
-                      <span className="font-hand text-sunset-500">{post.mood}</span>
-                    </>
-                  )}
-                </div>
-                <h3 className="text-xl font-display font-bold text-gray-900 dark:text-gray-100 group-hover:text-forest-600 dark:group-hover:text-forest-400 transition-colors mb-2">
-                  {post.title}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 line-clamp-2">{post.excerpt}</p>
-                <div className="flex flex-wrap gap-2 mt-4">
-                  {post.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="text-xs px-2.5 py-0.5 rounded-full bg-warm-50 dark:bg-gray-800 text-warm-600 dark:text-warm-400 border border-warm-200/50 dark:border-gray-700/50"
-                    >
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              </Link>
-            </FadeIn>
-          ))}
-        </div>
       </section>
 
       {/* travel route map */}
@@ -264,8 +222,8 @@ export default function Home() {
               <div className="flex items-start gap-3">
                 <span className="text-xl mt-0.5">📍</span>
                 <div>
-                  <p className="font-medium">驻马店，河南</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">在朋友家做沙发客和看家</p>
+                  <p className="font-medium">🇳🇵加德满都，尼泊尔</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500">在尼泊尔旅居，学雅思，健身</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -298,5 +256,6 @@ export default function Home() {
         </FadeIn>
       </section>
     </div>
+    </PageTransition>
   );
 }

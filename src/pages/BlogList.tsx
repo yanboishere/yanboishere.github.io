@@ -4,14 +4,18 @@ import { useState, useEffect } from "react";
 import { loadBlogPosts, BlogPost } from "@/lib/blog-loader";
 import FadeIn from "@/components/FadeIn";
 import PageTransition from "@/components/PageTransition";
+import { FullPageLoading } from "@/components/PageLoading";
 
 export default function BlogList() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadBlogPosts().then(setPosts);
+    loadBlogPosts()
+      .then(setPosts)
+      .finally(() => setLoading(false));
   }, []);
 
   const allTags = Array.from(new Set(posts.flatMap((p) => p.tags)));
@@ -24,6 +28,10 @@ export default function BlogList() {
       post.excerpt.toLowerCase().includes(search.toLowerCase());
     return matchesTag && matchesSearch;
   });
+
+  if (loading) {
+    return <FullPageLoading />;
+  }
 
   return (
     <PageTransition>

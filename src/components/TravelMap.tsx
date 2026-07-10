@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import PageLoading from "@/components/PageLoading";
 
 const TILE_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 const DARK_TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
@@ -576,10 +577,7 @@ export default function TravelMap({ className }: TravelMapProps) {
 
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-warm-50/80 dark:bg-gray-900/80 rounded-2xl pointer-events-none">
-          <div className="text-center">
-            <div className="animate-float text-3xl mb-2">🌍</div>
-            <div className="text-sm text-gray-500 dark:text-gray-400 font-hand">加载轨迹中...</div>
-          </div>
+          <PageLoading size="md" text="地图上，又画了一条线。" />
         </div>
       )}
 

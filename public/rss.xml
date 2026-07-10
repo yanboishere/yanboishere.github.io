@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>烟波 Yanbo</title>
+    <link>https://yanbowa.ng</link>
+    <description>一个数字游民的博客 — Drop out · Digital Nomad · Writer · Photographer</description>
+    <language>zh-CN</language>
+    <lastBuildDate>Thu, 23 Apr 2026 00:00:00 GMT</lastBuildDate>
+    <atom:link href="https://yanbowa.ng/rss.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>年轻人在学第三甚至第四门语言，只为润出去｜乌兹别克斯坦和哈萨克斯坦游记</title>
+      <link>https://yanbowa.ng/blog/uzbekistan-kazakhstan</link>
+      <guid isPermaLink="true">https://yanbowa.ng/blog/uzbekistan-kazakhstan</guid>
+      <pubDate>Thu, 23 Apr 2026 00:00:00 GMT</pubDate>
+      <description>从语言到地缘，从雪佛兰到中国电车，从帖木儿到中吉乌铁路——一个数字游民眼中的中亚后苏联时代</description>
+    </item>
+    <item>
+      <title>Web3求职招聘的现状、挑战与个人思考</title>
+      <link>https://yanbowa.ng/blog/web3</link>
+      <guid isPermaLink="true">https://yanbowa.ng/blog/web3</guid>
+      <pubDate>Thu, 01 May 2025 00:00:00 GMT</pubDate>
+      <description>2025年对于Web3行业来说算是一个值得铭记的年份，行业整体市场规模在突破了新的高点</description>
+    </item>
+    <item>
+      <title>加密之火 在东京悄然燃烧｜EDCON2024活动记录</title>
+      <link>https://yanbowa.ng/blog/edcon2024</link>
+      <guid isPermaLink="true">https://yanbowa.ng/blog/edcon2024</guid>
+      <pubDate>Wed, 07 Aug 2024 00:00:00 GMT</pubDate>
+      <description>去年和今年去过了很多次活动，也拖更了很多次活动记</description>
+    </item>
+    <item>
+      <title>关于我</title>
+      <link>https://yanbowa.ng/blog/about-me</link>
+      <guid isPermaLink="true">https://yanbowa.ng/blog/about-me</guid>
+      <pubDate>Sat, 19 Aug 2023 00:00:00 GMT</pubDate>
+      <description>烟波，取自唐诗宋词中经常出现的一个词语</description>
+    </item>
+    <item>
+      <title>DAO治理：从《动物庄园》中学习的教训和其去中心化的重要性</title>
+      <link>https://yanbowa.ng/blog/dao-dao</link>
+      <guid isPermaLink="true">https://yanbowa.ng/blog/dao-dao</guid>
+      <pubDate>Fri, 16 Jun 2023 00:00:00 GMT</pubDate>
+      <description>封面拍摄于2023年5月3日 大连市长海县大长山岛镇 祈祥园</description>
+    </item>
+    <item>
+      <title>ETH Beijing 活动记｜一个Web3小白的75小时</title>
+      <link>https://yanbowa.ng/blog/eth-beijing-web3-75</link>
+      <guid isPermaLink="true">https://yanbowa.ng/blog/eth-beijing-web3-75</guid>
+      <pubDate>Mon, 17 Apr 2023 00:00:00 GMT</pubDate>
+      <description>Hi 我是烟波，好久没更新文章了，今天来写下我最近参加ETH Beijing Hackathon活动的经历</description>
+    </item>
+    <item>
+      <title>区块链工程师学习路线 中文版 制作小记</title>
+      <link>https://yanbowa.ng/blog/blockchain-developer-roadmap</link>
+      <guid isPermaLink="true">https://yanbowa.ng/blog/blockchain-developer-roadmap</guid>
+      <pubDate>Sat, 18 Feb 2023 00:00:00 GMT</pubDate>
+      <description>在近5天内，我在GitHub上新开了一个项目，来寄存我从头到尾翻译的区块链工程师学习路线</description>
+    </item>
+    <item>
+      <title>Hello World.</title>
+      <link>https://yanbowa.ng/blog/hello-world</link>
+      <guid isPermaLink="true">https://yanbowa.ng/blog/hello-world</guid>
+      <pubDate>Sat, 04 Feb 2023 00:00:00 GMT</pubDate>
+      <description>First blog.</description>
+    </item>
+  </channel>
+</rss>

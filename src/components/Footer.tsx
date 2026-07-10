@@ -1,4 +1,5 @@
 import { Github, Twitter, Mail } from "lucide-react";
+import RssSubscribeButton from "@/components/RssSubscribeButton";
 import { FaBilibili, FaYoutube, FaLinkedinIn } from "react-icons/fa6";
 import { SiXiaohongshu, SiInstagram } from "react-icons/si";
 import VisitorCounter from "./VisitorCounter";
@@ -81,6 +82,7 @@ export default function Footer() {
             >
               <FaLinkedinIn size={18} />
             </a>
+            <RssSubscribeButton variant="icon" />
             <a
               href="mailto:yanbo@work-work.org"
               className="p-2 rounded-lg hover:bg-warm-100 dark:hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-800 dark:hover:text-gray-300"

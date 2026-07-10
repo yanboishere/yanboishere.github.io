@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import { loadBlogPosts, BlogPost as BlogPostType } from "@/lib/blog-loader";
 import FadeIn from "@/components/FadeIn";
 import PageTransition from "@/components/PageTransition";
+import { FullPageLoading } from "@/components/PageLoading";
 
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
@@ -22,14 +23,7 @@ export default function BlogPost() {
   const post = allPosts.find((p) => p.slug === slug);
 
   if (loading) {
-    return (
-      <div className="min-h-screen pt-24 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-float text-4xl mb-4">✍️</div>
-          <p className="text-gray-500 dark:text-gray-400">加载中...</p>
-        </div>
-      </div>
-    );
+    return <FullPageLoading />;
   }
 
   if (!post) {

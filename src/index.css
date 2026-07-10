@@ -121,6 +121,44 @@
   }
 }
 
+@layer components {
+  .loading-ball {
+    display: inline-block;
+    aspect-ratio: 1;
+    border-radius: 9999px;
+    background-color: currentColor;
+    color: theme("colors.forest.500");
+    animation: loading-ball-bounce 0.45s ease-in-out infinite alternate;
+    pointer-events: none;
+    vertical-align: middle;
+  }
+
+  .dark .loading-ball {
+    color: theme("colors.forest.400");
+  }
+
+  .loading-ball-sm {
+    width: 1rem;
+  }
+
+  .loading-ball-md {
+    width: 1.5rem;
+  }
+
+  .loading-ball-lg {
+    width: 2rem;
+  }
+
+  @keyframes loading-ball-bounce {
+    0% {
+      transform: translateY(0);
+    }
+    100% {
+      transform: translateY(-100%);
+    }
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

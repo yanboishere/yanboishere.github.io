@@ -5,9 +5,9 @@ export interface NowSection {
 }
 
 export const nowData = {
-  lastUpdated: "2025-05-01",
-  location: "🇨🇳 驻马店，河南",
-  locationNote: "在朋友家做沙发客和看家",
+  lastUpdated: "2025-07-06",
+  location: "🇳🇵加德满都，尼泊尔",
+  locationNote: "在尼泊尔旅居，学雅思，健身",
 
   sections: [
     {

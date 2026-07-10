@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Wallet, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, ChevronDown, ChevronUp } from "lucide-react";
+import PageLoading from "@/components/PageLoading";
 
 interface Position {
   symbol: string;
@@ -179,7 +180,7 @@ export default function Portfolio() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <RefreshCw className="w-6 h-6 text-forest-500 animate-spin" />
+        <PageLoading size="md" />
       </div>
     );
   }

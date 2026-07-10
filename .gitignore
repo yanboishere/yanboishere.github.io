@@ -32,3 +32,9 @@ scripts/process-tracks.mjs
 # Longbridge OAuth tokens
 .longbridge/
 .longbridge-token.json
+
+# Trading data & reports (privacy)
+public/trades.json
+public/trades-h1.json
+public/price-cache-h1.json
+reports/

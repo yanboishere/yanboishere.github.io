@@ -3,6 +3,7 @@ import path from "path";
 import matter from "gray-matter";
 import { marked } from "marked";
 import { fileURLToPath } from "url";
+import { generateRss } from "./generate-rss.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONTENT_DIR = path.join(__dirname, "..", "content", "blog");
@@ -44,3 +45,5 @@ if (!fs.existsSync(OUTPUT_DIR)) {
 
 fs.writeFileSync(OUTPUT_FILE, JSON.stringify(posts, null, 2), "utf-8");
 console.log(`✅ Built ${posts.length} blog posts → ${OUTPUT_FILE}`);
+
+generateRss(posts, path.join(OUTPUT_DIR, "rss.xml"));
