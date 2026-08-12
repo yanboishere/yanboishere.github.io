@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { loadBlogPosts, BlogPost } from "@/lib/blog-loader";
-import { photos } from "@/data/photos";
 import FadeIn from "@/components/FadeIn";
 import PageTransition from "@/components/PageTransition";
 import TravelMap from "@/components/TravelMap";
@@ -32,7 +31,6 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [greeting]);
   const [latestPosts, setLatestPosts] = useState<BlogPost[]>([]);
-  const featuredPhotos = photos.slice(0, 4);
 
   useEffect(() => {
     loadBlogPosts().then((posts) => {
@@ -168,44 +166,6 @@ export default function Home() {
         <FadeIn delay={0.15}>
           <Portfolio />
         </FadeIn>
-      </section>
-
-      {/* featured photos */}
-      <section className="container max-w-4xl mx-auto px-4 py-16">
-        <FadeIn>
-          <div className="flex items-center justify-between mb-10">
-            <h2 className="font-display text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
-              随手拍 📷（更新中）
-            </h2>
-            <Link
-              to="/photos"
-              className="text-sm text-forest-600 dark:text-forest-400 hover:text-forest-700 dark:hover:text-forest-300 flex items-center gap-1 transition-colors"
-            >
-              看更多 <ArrowRight size={16} />
-            </Link>
-          </div>
-        </FadeIn>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          {featuredPhotos.map((photo, i) => (
-            <FadeIn key={photo.id} delay={i * 0.1}>
-              <Link to="/photos" className="group relative aspect-square overflow-hidden rounded-xl film-border cursor-pointer block">
-                <img
-                  src={photo.src}
-                  alt={photo.alt}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="absolute bottom-3 left-3 right-3">
-                    <p className="text-white text-sm font-medium">{photo.alt}</p>
-                    <p className="text-white/70 text-xs mt-0.5">{photo.location}</p>
-                  </div>
-                </div>
-              </Link>
-            </FadeIn>
-          ))}
-        </div>
       </section>
 
       {/* currently / now 摘要 */}
