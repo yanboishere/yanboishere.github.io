@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { requestAppFullscreen } from "@/lib/fullscreen";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { loadBlogPosts, BlogPost } from "@/lib/blog-loader";
@@ -17,6 +18,7 @@ const greetings = [
 ];
 
 export default function Home() {
+  const navigate = useNavigate();
   const [greeting] = useState(() => greetings[Math.floor(Math.random() * greetings.length)]);
   const [displayedGreeting, setDisplayedGreeting] = useState("");
 
@@ -146,11 +148,16 @@ export default function Home() {
           <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 -mt-4">
             来自 406,550 个 GPS 数据点的真实轨迹。走过 20 个国家，每一条线都是一段故事。
             <br />
-            为保护隐私，部分数据进行了人为偏移处理。
+            点「播放旅程」或顶栏「足迹」，会进入全屏回放。为保护隐私，部分数据做了偏移。
           </p>
         </FadeIn>
         <FadeIn delay={0.15}>
-          <TravelMap />
+          <TravelMap
+            onPlayAll={() => {
+              void requestAppFullscreen();
+              navigate("/footprints");
+            }}
+          />
         </FadeIn>
       </section>
 

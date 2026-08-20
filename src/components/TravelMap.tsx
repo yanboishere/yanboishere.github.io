@@ -2,9 +2,47 @@ import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import PageLoading from "@/components/PageLoading";
+import {
+  blendCamera,
+  buildCameraTrack,
+  buildRoute,
+  cameraAt,
+  cameraToLeaflet,
+  collectJourneyTiles,
+  durationMsForScope,
+  easeInOutCubic,
+  easeOutCubic,
+  formatJourneyMonth,
+  HOLD_MS,
+  haversineKm,
+  indexAtDistance,
+  overviewCamera,
+  OUTRO_TRANSITION_MS,
+  OVERVIEW_ROUTE_ALPHA,
+  pathBetweenDistances,
+  positionAtDistance,
+  stabilizeTileZoom,
+  tileKey,
+  trailRanges,
+  trailWindowKm,
+  type JourneyRoute,
+  type TileCoord,
+  type WorldCamera,
+} from "@/lib/journey";
+import { drawJourneyFrame, sizePlayCanvas, type TileCache } from "@/lib/journey-canvas";
+import { createPlaceTracker, type PlaceInfo } from "@/lib/reverse-geocode";
 
 const TILE_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 const DARK_TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+const JOURNEY_COLOR = "#ec6322";
+const SPEED_MIN = 0.1;
+const SPEED_MAX = 3;
+const SPEED_STEP = 0.1;
+const DEFAULT_SPEED = 1;
+
+function formatSpeed(speed: number): string {
+  return `${speed.toFixed(1).replace(/\.0$/, "")}x`;
+}
 
 type RawPoint = [number, number, number];
 
@@ -34,11 +72,132 @@ function getMonthTsRange(year: number, month: number) {
   };
 }
 
-interface TravelMapProps {
-  className?: string;
+function applyCamera(map: L.Map, camera: WorldCamera) {
+  const size = map.getSize();
+  const view = cameraToLeaflet(camera, size.x, size.y);
+  map.setView(view.center, view.zoom, { animate: false });
 }
 
-export default function TravelMap({ className }: TravelMapProps) {
+function retinaSuffix(): string {
+  return L.Browser.retina ? "@2x" : "";
+}
+
+function tileUrl(tile: TileCoord, dark: boolean): string {
+  const template = dark ? DARK_TILE_URL : TILE_URL;
+  const s = "abcd"[Math.abs(tile.x + tile.y) % 4];
+  return template
+    .replace("{s}", s)
+    .replace("{z}", String(tile.z))
+    .replace("{x}", String(tile.x))
+    .replace("{y}", String(tile.y))
+    .replace("{r}", retinaSuffix());
+}
+
+type SmoothTileLayer = L.TileLayer & {
+  _smoothCameraPatched?: boolean;
+  _tileZoom?: number;
+  _setView?: (center: L.LatLng, zoom: number, noPrune?: boolean, noUpdate?: boolean) => void;
+  _setZoomTransforms?: (center: L.LatLng, zoom: number) => void;
+  _update?: (center: L.LatLng) => void;
+};
+
+function createBasemap(dark: boolean): L.TileLayer {
+  const layer = L.tileLayer(dark ? DARK_TILE_URL : TILE_URL, {
+    subdomains: "abcd",
+    maxZoom: 19,
+    keepBuffer: 12,
+    updateWhenZooming: false,
+    updateWhenIdle: false,
+    className: "journey-basemap",
+  }) as SmoothTileLayer;
+
+  if (!layer._smoothCameraPatched) {
+    layer._smoothCameraPatched = true;
+    const originalSetView = layer._setView?.bind(layer);
+    layer._setView = function (center, zoom, noPrune, noUpdate) {
+      const tileZoom = Math.round(zoom);
+      if (this._tileZoom === tileZoom && this._map && this._setZoomTransforms && this._update) {
+        this._setZoomTransforms(center, zoom);
+        this._update(center);
+        return;
+      }
+      originalSetView?.(center, zoom, noPrune, noUpdate);
+    };
+  }
+
+  return layer;
+}
+
+function preloadTiles(
+  tiles: TileCoord[],
+  dark: boolean,
+  onProgress: (loaded: number, total: number) => void,
+  signal: AbortSignal
+): Promise<TileCache> {
+  const unique = new Map<string, TileCoord>();
+  for (const tile of tiles) unique.set(tileKey(tile.z, tile.x, tile.y), tile);
+  const list = [...unique.values()];
+  const cache: TileCache = new Map();
+  if (list.length === 0) return Promise.resolve(cache);
+
+  return new Promise((resolve) => {
+    let nextIndex = 0;
+    let finished = 0;
+    let active = 0;
+    const concurrency = 8;
+    const total = list.length;
+
+    const tick = () => {
+      if (signal.aborted) {
+        resolve(cache);
+        return;
+      }
+      if (finished >= total) {
+        resolve(cache);
+        return;
+      }
+      while (active < concurrency && nextIndex < total) {
+        const tile = list[nextIndex++];
+        const key = tileKey(tile.z, tile.x, tile.y);
+        active += 1;
+        const img = new Image();
+        let settled = false;
+        const done = (ok: boolean) => {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(timer);
+          if (ok && img.complete && img.naturalWidth > 0) cache.set(key, img);
+          active -= 1;
+          finished += 1;
+          onProgress(finished, total);
+          tick();
+        };
+        const timer = window.setTimeout(() => done(false), 8000);
+        img.onload = () => done(true);
+        img.onerror = () => done(false);
+        img.src = tileUrl(tile, dark);
+      }
+    };
+
+    tick();
+  });
+}
+
+interface TravelMapProps {
+  className?: string;
+  variant?: "embedded" | "fullscreen";
+  autoPlay?: boolean;
+  onPlayAll?: () => void;
+  onExit?: () => void;
+}
+
+export default function TravelMap({
+  className,
+  variant = "embedded",
+  autoPlay = false,
+  onPlayAll,
+  onExit,
+}: TravelMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
@@ -50,15 +209,23 @@ export default function TravelMap({ className }: TravelMapProps) {
   const [stats, setStats] = useState({ points: 0, distance: 0 });
   const [animating, setAnimating] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [journeyDate, setJourneyDate] = useState("");
+  const [placeLabel, setPlaceLabel] = useState<PlaceInfo | null>(null);
+  const placeTrackerRef = useRef<ReturnType<typeof createPlaceTracker> | null>(null);
+  const [playAll, setPlayAll] = useState(autoPlay);
+  const fullscreen = variant === "fullscreen";
+  const [playbackSpeed, setPlaybackSpeed] = useState(DEFAULT_SPEED);
+  const playbackSpeedRef = useRef(DEFAULT_SPEED);
+  const [preparing, setPreparing] = useState(false);
+  const [prepareProgress, setPrepareProgress] = useState({ loaded: 0, total: 0 });
 
   const pausedRef = useRef(false);
+  const preloadAbortRef = useRef<AbortController | null>(null);
   const pausedAtRef = useRef(0);
   const totalPausedRef = useRef(0);
-  const animStartTimeRef = useRef(0);
-  const animCoordsRef = useRef<L.LatLngExpression[]>([]);
-  const animLineRef = useRef<L.Polyline | null>(null);
-  const animColorRef = useRef("");
-  const animMaxZoomRef = useRef(5);
+  const playCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const progressSeekRef = useRef<number | null>(null);
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<MonthInfo | null>(null);
   const [availableMonths, setAvailableMonths] = useState<MonthInfo[]>([]);
@@ -68,89 +235,331 @@ export default function TravelMap({ className }: TravelMapProps) {
       cancelAnimationFrame(animFrameRef.current);
       animFrameRef.current = 0;
     }
+    preloadAbortRef.current?.abort();
+    preloadAbortRef.current = null;
+    playCanvasRef.current?.remove();
+    playCanvasRef.current = null;
+    const panes = map.getPanes();
+    if (panes.tilePane) panes.tilePane.style.visibility = "";
+    if (panes.overlayPane) panes.overlayPane.style.visibility = "";
+    if (panes.markerPane) panes.markerPane.style.visibility = "";
     for (const layer of layersRef.current) map.removeLayer(layer);
     layersRef.current = [];
     setAnimating(false);
     setPaused(false);
+    setPreparing(false);
+    setProgress(0);
+    progressSeekRef.current = null;
+    setPlaceLabel(null);
+    placeTrackerRef.current?.cancel();
+    placeTrackerRef.current = null;
     pausedRef.current = false;
     pausedAtRef.current = 0;
     totalPausedRef.current = 0;
-    animLineRef.current = null;
-    animCoordsRef.current = [];
+    map.dragging.enable();
   }, []);
 
-  const animateRoute = useCallback(
-    (map: L.Map, coords: L.LatLngExpression[], color: string, maxZoom: number) => {
-      if (coords.length === 0) return;
+  const showOverview = useCallback(
+    (map: L.Map, data: RawPoint[]) => {
+      clearLayers(map);
+      if (data.length === 0) return;
 
-      const glowLine = L.polyline(coords, {
-        color,
-        weight: 8,
-        opacity: 0.2,
-        smoothFactor: 1,
-        lineCap: "round",
-        lineJoin: "round",
-      }).addTo(map);
-      layersRef.current.push(glowLine);
+      const allCoords: L.LatLngExpression[] = data.map((p) => [p[0], p[1]]);
+      const grouped: Record<string, L.LatLngExpression[]> = {};
+      for (const p of data) {
+        const yr = new Date(p[2] * 1000).getFullYear().toString();
+        if (!grouped[yr]) grouped[yr] = [];
+        grouped[yr].push([p[0], p[1]]);
+      }
+      for (const [yr, pts] of Object.entries(grouped)) {
+        const color = YEAR_COLORS[yr] || "#dda75c";
+        const line = L.polyline(pts, {
+          color,
+          weight: 2.5,
+          opacity: 0.85,
+          smoothFactor: 1.5,
+          lineCap: "round",
+          lineJoin: "round",
+        }).addTo(map);
+        layersRef.current.push(line);
+      }
 
-      map.fitBounds(L.latLngBounds(coords), { padding: [40, 40], maxZoom });
+      map.fitBounds(L.latLngBounds(allCoords), { padding: [30, 30], maxZoom: 5 });
 
-      const animLine = L.polyline([], {
-        color,
-        weight: 3.5,
-        opacity: 1,
-        smoothFactor: 1,
-        lineCap: "round",
-        lineJoin: "round",
-      }).addTo(map);
-      layersRef.current.push(animLine);
-      animLineRef.current = animLine;
-      animCoordsRef.current = coords;
-      animColorRef.current = color;
-      animMaxZoomRef.current = maxZoom;
+      let totalDist = 0;
+      for (let i = 1; i < allCoords.length; i++) {
+        const a = allCoords[i - 1] as [number, number];
+        const b = allCoords[i] as [number, number];
+        totalDist += haversineKm(a[0], a[1], b[0], b[1]);
+      }
+      setStats({ points: data.length, distance: Math.round(totalDist) });
+      setJourneyDate("");
+    },
+    [clearLayers]
+  );
 
-      setAnimating(true);
+  const startJourney = useCallback(
+    (map: L.Map, data: RawPoint[], month: MonthInfo | null, year: string | null) => {
+      clearLayers(map);
+      map.dragging.disable();
+
+      const filtered = month
+        ? data.filter((p) => {
+            const { startTs, endTs } = getMonthTsRange(month.year, month.month);
+            return p[2] >= startTs && p[2] <= endTs;
+          })
+        : year
+          ? data.filter((p) => new Date(p[2] * 1000).getFullYear().toString() === year)
+          : data;
+
+      if (filtered.length === 0) {
+        setStats({ points: 0, distance: 0 });
+        map.dragging.enable();
+        return;
+      }
+
+      const route = buildRoute(filtered);
+      if (!route) {
+        map.dragging.enable();
+        return;
+      }
+
+      const color = year ? YEAR_COLORS[year] || JOURNEY_COLOR : JOURNEY_COLOR;
+      const scope = month ? "month" : year ? "year" : "all";
+      const duration = durationMsForScope(scope);
+      const windowKm = trailWindowKm(route.totalKm, duration / 1000);
+      map.invalidateSize();
+      const size = map.getSize();
+      const overviewPath = pathBetweenDistances(route, 0, route.totalKm);
+
+      const track = buildCameraTrack(route, size.x, size.y);
+      const overview = overviewCamera(route, size.x, size.y);
+      let camera: WorldCamera = track[0] || overview;
+      let drawZoom = stabilizeTileZoom(null, cameraToLeaflet(camera, size.x, size.y).zoom);
+      let tileCache: TileCache = new Map();
+
+      const canvas = document.createElement("canvas");
+      canvas.className = "journey-play-canvas";
+      map.getContainer().appendChild(canvas);
+      playCanvasRef.current = canvas;
+      let ctx = sizePlayCanvas(canvas, size.x, size.y);
+
+      setPreparing(true);
+      setPrepareProgress({ loaded: 0, total: 0 });
+      setAnimating(false);
       setPaused(false);
-      pausedRef.current = false;
-      pausedAtRef.current = 0;
+      setProgress(0);
+      setStats({ points: filtered.length, distance: Math.round(route.totalKm) });
+      setJourneyDate(formatJourneyMonth(route.timestamps[0]));
+      setPlaceLabel(null);
+      placeTrackerRef.current?.cancel();
+      const tracker = createPlaceTracker((info) => setPlaceLabel(info));
+      placeTrackerRef.current = tracker;
+
       totalPausedRef.current = 0;
-      const ANIM_DURATION = 15000;
-      const totalPoints = coords.length;
-      const startTime = performance.now();
-      animStartTimeRef.current = startTime;
+      let phase: "play" | "ending" | "hold" = "play";
+      let endingFrom: WorldCamera | null = null;
+      let endingTo: WorldCamera | null = null;
+      let phaseStarted = 0;
+      let lastDate = formatJourneyMonth(route.timestamps[0]);
+      let lastPct = -1;
+      let lastFrame = 0;
+      let lastTick = 0;
+      let journeyElapsed = 0;
+      let lastDistanceKm = 0;
+
+      function paint(routeNow: JourneyRoute, distanceKm: number, outro = 0) {
+        const viewSize = map.getSize();
+        if (!ctx || canvas.clientWidth !== viewSize.x || canvas.clientHeight !== viewSize.y) {
+          ctx = sizePlayCanvas(canvas, viewSize.x, viewSize.y);
+        }
+        if (!ctx) return positionAtDistance(routeNow, distanceKm);
+
+        const headPos = positionAtDistance(routeNow, distanceKm);
+        const ranges = trailRanges(distanceKm, windowKm);
+        const trailFade = 1 - easeOutCubic(outro);
+        const zoom = cameraToLeaflet(camera, viewSize.x, viewSize.y).zoom;
+        drawZoom = stabilizeTileZoom(drawZoom, zoom);
+
+        drawJourneyFrame(ctx, {
+          camera,
+          cache: tileCache,
+          tileZoom: drawZoom,
+          width: viewSize.x,
+          height: viewSize.y,
+          color,
+          oldTrail: pathBetweenDistances(routeNow, ranges.old[0], ranges.old[1]),
+          middleTrail: pathBetweenDistances(routeNow, ranges.middle[0], ranges.middle[1]),
+          recentTrail: pathBetweenDistances(routeNow, ranges.recent[0], ranges.recent[1]),
+          overviewPath,
+          head: headPos,
+          trailFade,
+          overviewAlpha: OVERVIEW_ROUTE_ALPHA * easeInOutCubic(outro),
+        });
+
+        const idx = indexAtDistance(routeNow.cumDist, distanceKm);
+        const label = formatJourneyMonth(routeNow.timestamps[idx]);
+        if (label !== lastDate) {
+          lastDate = label;
+          setJourneyDate(label);
+        }
+        lastDistanceKm = distanceKm;
+        tracker.update(headPos[0], headPos[1]);
+        return headPos;
+      }
+
+      function finishOverview() {
+        animFrameRef.current = 0;
+        setAnimating(false);
+        setProgress(1);
+        map.dragging.enable();
+        canvas.remove();
+        playCanvasRef.current = null;
+        const panes = map.getPanes();
+        if (panes.tilePane) panes.tilePane.style.visibility = "";
+        if (panes.overlayPane) panes.overlayPane.style.visibility = "";
+        if (panes.markerPane) panes.markerPane.style.visibility = "";
+        applyCamera(map, overview);
+
+        if (!year && !month) {
+          const grouped: Record<string, L.LatLngExpression[]> = {};
+          for (const p of filtered) {
+            const yr = new Date(p[2] * 1000).getFullYear().toString();
+            if (!grouped[yr]) grouped[yr] = [];
+            grouped[yr].push([p[0], p[1]]);
+          }
+          for (const [yr, pts] of Object.entries(grouped)) {
+            const line = L.polyline(pts, {
+              color: YEAR_COLORS[yr] || "#dda75c",
+              weight: 2.5,
+              opacity: 0.9,
+              smoothFactor: 1.5,
+              lineCap: "round",
+              lineJoin: "round",
+            }).addTo(map);
+            layersRef.current.push(line);
+          }
+        } else {
+          const overviewLine = L.polyline(overviewPath, {
+            color,
+            weight: 2.5,
+            opacity: 0.85,
+            smoothFactor: 1,
+            lineCap: "round",
+            lineJoin: "round",
+          }).addTo(map);
+          layersRef.current.push(overviewLine);
+        }
+      }
+
+      function applyJourneyTime(t: number, outro = 0) {
+        const clamped = Math.min(1, Math.max(0, t));
+        const pct = Math.round(clamped * 200) / 200;
+        if (pct !== lastPct) {
+          lastPct = pct;
+          setProgress(pct);
+        }
+        camera = cameraAt(track, clamped);
+        paint(route, route.distanceAt(clamped), outro);
+        return clamped;
+      }
 
       function animate(now: number) {
-        if (pausedRef.current) {
+        let didSeek = false;
+        if (progressSeekRef.current != null) {
+          const seekT = Math.min(1, Math.max(0, progressSeekRef.current));
+          progressSeekRef.current = null;
+          journeyElapsed = seekT * duration;
+          phase = "play";
+          lastTick = now;
+          lastFrame = now;
+          applyJourneyTime(seekT, 0);
+          didSeek = true;
+          if (seekT >= 1) {
+            phase = "ending";
+            phaseStarted = now;
+            endingFrom = camera;
+            endingTo = overview;
+          }
+        }
+
+        if (pausedRef.current && phase === "play") {
+          lastTick = now;
           animFrameRef.current = requestAnimationFrame(animate);
           return;
         }
-        const elapsed = now - startTime - totalPausedRef.current;
-        const progress = Math.min(elapsed / ANIM_DURATION, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        const idx = Math.min(Math.floor(eased * totalPoints), totalPoints);
-        animLine.setLatLngs(coords.slice(0, idx));
-        if (progress < 1) {
-          animFrameRef.current = requestAnimationFrame(animate);
-        } else {
-          animFrameRef.current = 0;
-          setAnimating(false);
-        }
-      }
-      animFrameRef.current = requestAnimationFrame(animate);
 
-      let dist = 0;
-      for (let i = 1; i < coords.length; i++) {
-        const a = coords[i - 1] as [number, number];
-        const b = coords[i] as [number, number];
-        dist += haversineKm(a[0], a[1], b[0], b[1]);
+        if (phase === "play" && !didSeek) {
+          if (now - lastFrame < 32) {
+            animFrameRef.current = requestAnimationFrame(animate);
+            return;
+          }
+          const dt = Math.min(now - lastTick, 100);
+          lastTick = now;
+          lastFrame = now;
+          journeyElapsed += dt * playbackSpeedRef.current;
+          const t = applyJourneyTime(Math.min(journeyElapsed / duration, 1), 0);
+
+          if (t >= 1) {
+            phase = "ending";
+            phaseStarted = now;
+            endingFrom = camera;
+            endingTo = overview;
+          }
+        } else if (phase === "ending" && endingFrom && endingTo) {
+          const t = Math.min((now - phaseStarted) / OUTRO_TRANSITION_MS, 1);
+          camera = blendCamera(endingFrom, endingTo, easeOutCubic(t));
+          paint(route, lastDistanceKm || route.totalKm, t);
+          if (t >= 1) {
+            phase = "hold";
+            phaseStarted = now;
+          }
+        } else if (phase === "hold") {
+          paint(route, route.totalKm, 1);
+          if (now - phaseStarted >= HOLD_MS) {
+            finishOverview();
+            return;
+          }
+        }
+
+        animFrameRef.current = requestAnimationFrame(animate);
       }
-      setStats({ points: coords.length, distance: Math.round(dist) });
+
+      const abort = new AbortController();
+      preloadAbortRef.current = abort;
+      const tiles = collectJourneyTiles(track, overview, size.x, size.y);
+      setPrepareProgress({ loaded: 0, total: tiles.length });
+
+      void preloadTiles(
+        tiles,
+        isDarkRef.current,
+        (loaded, total) => {
+          if (!abort.signal.aborted) setPrepareProgress({ loaded, total });
+        },
+        abort.signal
+      ).then((cache) => {
+        if (abort.signal.aborted || mapInstanceRef.current !== map) return;
+        tileCache = cache;
+        const panes = map.getPanes();
+        if (panes.tilePane) panes.tilePane.style.visibility = "hidden";
+        if (panes.overlayPane) panes.overlayPane.style.visibility = "hidden";
+        if (panes.markerPane) panes.markerPane.style.visibility = "hidden";
+        paint(route, 0, 0);
+        setPreparing(false);
+        setAnimating(true);
+        const start = performance.now();
+        lastTick = start;
+        lastFrame = start;
+        journeyElapsed = 0;
+        phaseStarted = start;
+        animFrameRef.current = requestAnimationFrame(animate);
+      });
     },
-    []
+    [clearLayers]
   );
 
   const togglePause = useCallback(() => {
-    if (!animating) return;
+    if (!animating || progress >= 1) return;
     if (pausedRef.current) {
       totalPausedRef.current += performance.now() - pausedAtRef.current;
       pausedRef.current = false;
@@ -160,123 +569,25 @@ export default function TravelMap({ className }: TravelMapProps) {
       pausedRef.current = true;
       setPaused(true);
     }
-  }, [animating]);
-
-  const renderRoutes = useCallback(
-    (map: L.Map, data: RawPoint[], month: MonthInfo | null, year?: string | null) => {
-      clearLayers(map);
-
-      if (month) {
-        const { startTs, endTs } = getMonthTsRange(month.year, month.month);
-        const filteredCoords: L.LatLngExpression[] = [];
-        const dimCoords: L.LatLngExpression[] = [];
-
-        for (const p of data) {
-          if (p[2] >= startTs && p[2] <= endTs) {
-            filteredCoords.push([p[0], p[1]]);
-          } else {
-            dimCoords.push([p[0], p[1]]);
-          }
-        }
-
-        if (dimCoords.length > 0) {
-          const dimLine = L.polyline(dimCoords, {
-            color: isDarkRef.current ? "rgba(255,255,255,0.06)" : "rgba(111,78,55,0.06)",
-            weight: 2,
-            smoothFactor: 1.5,
-            lineCap: "round",
-            lineJoin: "round",
-          }).addTo(map);
-          layersRef.current.push(dimLine);
-        }
-
-        if (filteredCoords.length > 0) {
-          const color = YEAR_COLORS[month.year.toString()] || "#dda75c";
-          animateRoute(map, filteredCoords, color, 12);
-        } else {
-          setStats({ points: 0, distance: 0 });
-        }
-      } else if (year) {
-        const yearCoords: L.LatLngExpression[] = [];
-        const dimCoords: L.LatLngExpression[] = [];
-
-        for (const p of data) {
-          const pYear = new Date(p[2] * 1000).getFullYear().toString();
-          if (pYear === year) {
-            yearCoords.push([p[0], p[1]]);
-          } else {
-            dimCoords.push([p[0], p[1]]);
-          }
-        }
-
-        if (dimCoords.length > 0) {
-          const dimLine = L.polyline(dimCoords, {
-            color: isDarkRef.current ? "rgba(255,255,255,0.06)" : "rgba(111,78,55,0.06)",
-            weight: 2,
-            smoothFactor: 1.5,
-            lineCap: "round",
-            lineJoin: "round",
-          }).addTo(map);
-          layersRef.current.push(dimLine);
-        }
-
-        if (yearCoords.length > 0) {
-          const color = YEAR_COLORS[year] || "#dda75c";
-          animateRoute(map, yearCoords, color, 5);
-        } else {
-          setStats({ points: 0, distance: 0 });
-        }
-      } else {
-        const allCoords: L.LatLngExpression[] = data.map((p) => [p[0], p[1]]);
-
-        const baseLine = L.polyline(allCoords, {
-          color: isDarkRef.current ? "rgba(255,255,255,0.12)" : "rgba(111,78,55,0.1)",
-          weight: 3,
-          smoothFactor: 1.5,
-          lineCap: "round",
-          lineJoin: "round",
-        }).addTo(map);
-        layersRef.current.push(baseLine);
-
-        const grouped: Record<string, L.LatLngExpression[]> = {};
-        for (const p of data) {
-          const yr = new Date(p[2] * 1000).getFullYear().toString();
-          if (!grouped[yr]) grouped[yr] = [];
-          grouped[yr].push([p[0], p[1]]);
-        }
-        for (const [yr, pts] of Object.entries(grouped)) {
-          const color = YEAR_COLORS[yr] || "#dda75c";
-          const line = L.polyline(pts, {
-            color,
-            weight: 2.5,
-            opacity: 0.85,
-            smoothFactor: 1.5,
-            lineCap: "round",
-            lineJoin: "round",
-          }).addTo(map);
-          layersRef.current.push(line);
-        }
-
-        map.fitBounds(L.latLngBounds(allCoords), { padding: [30, 30], maxZoom: 5 });
-
-        let totalDist = 0;
-        for (let i = 1; i < allCoords.length; i++) {
-          const a = allCoords[i - 1] as [number, number];
-          const b = allCoords[i] as [number, number];
-          totalDist += haversineKm(a[0], a[1], b[0], b[1]);
-        }
-        setStats({ points: data.length, distance: Math.round(totalDist) });
-      }
-    },
-    [clearLayers, animateRoute]
-  );
+  }, [animating, progress]);
 
   const replayRoute = useCallback(() => {
     const map = mapInstanceRef.current;
     const data = rawDataRef.current;
-    if (!map || data.length === 0 || !selectedMonth) return;
-    renderRoutes(map, data, selectedMonth, selectedYear);
-  }, [selectedMonth, selectedYear, renderRoutes]);
+    if (!map || data.length === 0) return;
+    startJourney(map, data, selectedMonth, selectedYear);
+  }, [selectedMonth, selectedYear, startJourney]);
+
+  const renderCurrent = useCallback(
+    (map: L.Map, data: RawPoint[]) => {
+      if (selectedMonth || selectedYear || playAll) {
+        startJourney(map, data, selectedMonth, selectedYear);
+      } else {
+        showOverview(map, data);
+      }
+    },
+    [selectedMonth, selectedYear, playAll, startJourney, showOverview]
+  );
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -287,24 +598,30 @@ export default function TravelMap({ className }: TravelMapProps) {
     isDarkRef.current = isDark;
 
     const map = L.map(container, {
-      zoomControl: true,
-      attributionControl: false,
-      scrollWheelZoom: false,
+      zoomControl: false,
+      attributionControl: true,
+      scrollWheelZoom: fullscreen,
       dragging: true,
       doubleClickZoom: true,
       touchZoom: true,
       minZoom: 2,
       maxZoom: 16,
+      zoomSnap: 0,
+      zoomDelta: 0.25,
+      zoomAnimation: false,
+      fadeAnimation: false,
+      markerZoomAnimation: false,
       worldCopyJump: true,
+      renderer: L.canvas({ padding: 0.5 }),
     });
+    map.setView([20, 80], 3);
     mapInstanceRef.current = map;
 
     L.control.zoom({ position: "bottomright" }).addTo(map);
+    map.attributionControl.setPrefix(false);
+    map.attributionControl.addAttribution('© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>');
 
-    const tileLayer = L.tileLayer(isDark ? DARK_TILE_URL : TILE_URL, {
-      subdomains: "abcd",
-      maxZoom: 19,
-    }).addTo(map);
+    const tileLayer = createBasemap(isDark).addTo(map);
     tileLayerRef.current = tileLayer;
 
     fetch("/travel-route.json")
@@ -335,7 +652,13 @@ export default function TravelMap({ className }: TravelMapProps) {
         months.sort((a, b) => a.year * 100 + a.month - (b.year * 100 + b.month));
         setAvailableMonths(months);
 
-        renderRoutes(map, data, null);
+        if (autoPlay) {
+          setPlayAll(true);
+          setPreparing(true);
+          startJourney(map, data, null, null);
+        } else {
+          showOverview(map, data);
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -344,21 +667,29 @@ export default function TravelMap({ className }: TravelMapProps) {
         setLoading(false);
       });
 
+    const syncSize = () => map.invalidateSize();
+    window.addEventListener("resize", syncSize);
+    document.addEventListener("fullscreenchange", syncSize);
+    document.addEventListener("webkitfullscreenchange", syncSize);
+
     return () => {
       alive = false;
+      window.removeEventListener("resize", syncSize);
+      document.removeEventListener("fullscreenchange", syncSize);
+      document.removeEventListener("webkitfullscreenchange", syncSize);
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       map.remove();
       mapInstanceRef.current = null;
       tileLayerRef.current = null;
     };
-  }, []);
+  }, [showOverview, startJourney, autoPlay, fullscreen]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
     const data = rawDataRef.current;
     if (!map || data.length === 0) return;
-    renderRoutes(map, data, selectedMonth, selectedYear);
-  }, [selectedMonth, selectedYear, renderRoutes]);
+    renderCurrent(map, data);
+  }, [selectedMonth, selectedYear, playAll, renderCurrent]);
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -369,21 +700,15 @@ export default function TravelMap({ className }: TravelMapProps) {
       isDarkRef.current = isDark;
 
       if (tileLayerRef.current) map.removeLayer(tileLayerRef.current);
-      const newTile = L.tileLayer(isDark ? DARK_TILE_URL : TILE_URL, {
-        subdomains: "abcd",
-        maxZoom: 19,
-      }).addTo(map);
+      const newTile = createBasemap(isDark).addTo(map);
       tileLayerRef.current = newTile;
-
-      if (rawDataRef.current.length > 0) {
-        renderRoutes(map, rawDataRef.current, selectedMonth, selectedYear);
-      }
     });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     return () => observer.disconnect();
-  }, [selectedMonth, selectedYear, renderRoutes]);
+  }, []);
 
   const handleYearClick = (year: string) => {
+    setPlayAll(false);
     if (selectedYear === year) {
       setSelectedYear(null);
       setSelectedMonth(null);
@@ -394,6 +719,7 @@ export default function TravelMap({ className }: TravelMapProps) {
   };
 
   const handleMonthClick = (month: MonthInfo) => {
+    setPlayAll(false);
     if (selectedMonth?.key === month.key) {
       setSelectedMonth(null);
     } else {
@@ -404,7 +730,46 @@ export default function TravelMap({ className }: TravelMapProps) {
   const handleReset = () => {
     setSelectedYear(null);
     setSelectedMonth(null);
+    setPlayAll(false);
   };
+
+  const handleSpeedChange = (value: number) => {
+    const next = Math.min(SPEED_MAX, Math.max(SPEED_MIN, Math.round(value * 10) / 10));
+    playbackSpeedRef.current = next;
+    setPlaybackSpeed(next);
+  };
+
+  const handleSeek = (value: number) => {
+    const next = Math.min(1, Math.max(0, value));
+    setProgress(next);
+    if (animating) progressSeekRef.current = next;
+  };
+
+  const speedControl = (withDivider = false) => (
+    <label
+      className={`block ${withDivider ? "mt-2 pt-2 border-t border-warm-200/60 dark:border-gray-700/60" : ""}`}
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400 mb-1">
+        <span>回放速度</span>
+        <span className="font-mono text-forest-600 dark:text-forest-400">{formatSpeed(playbackSpeed)}</span>
+      </div>
+      <input
+        type="range"
+        min={SPEED_MIN}
+        max={SPEED_MAX}
+        step={SPEED_STEP}
+        value={playbackSpeed}
+        onChange={(e) => handleSpeedChange(Number(e.target.value))}
+        className="journey-speed w-full"
+        aria-label="回放速度"
+      />
+      <div className="flex justify-between text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">
+        <span>0.1x</span>
+        <span>3x</span>
+      </div>
+    </label>
+  );
 
   const groupedByYear = useMemo(() => {
     const groups: Record<string, MonthInfo[]> = {};
@@ -416,14 +781,13 @@ export default function TravelMap({ className }: TravelMapProps) {
     return groups;
   }, [availableMonths]);
 
-  return (
-    <div className={`relative ${className || ""}`}>
-      <div
-        ref={mapRef}
-        className="w-full h-[360px] md:h-[480px] rounded-2xl overflow-hidden border border-warm-200/40 dark:border-gray-800/40"
-      />
+  const journeyTitle = selectedMonth
+    ? selectedMonth.label
+    : selectedYear
+      ? `${selectedYear}年`
+      : "全部旅程";
 
-      {!loading && availableMonths.length > 0 && (
+  const yearPicker = !loading && availableMonths.length > 0 && (
         <div className="absolute top-3 left-3 z-[1000]">
           <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-xl shadow-lg shadow-black/10 border border-warm-200/50 dark:border-gray-700/50 p-3 w-[180px] md:w-[200px]">
             <div className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2 flex items-center gap-1.5">
@@ -451,7 +815,11 @@ export default function TravelMap({ className }: TravelMapProps) {
             {selectedYear && !selectedMonth && (
               <div>
                 <button
-                  onClick={() => { setSelectedYear(null); setSelectedMonth(null); }}
+                  onClick={() => {
+                    setSelectedYear(null);
+                    setSelectedMonth(null);
+                    setPlayAll(false);
+                  }}
                   className="text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 mb-2 flex items-center gap-0.5 transition-colors"
                 >
                   {"← 返回"}
@@ -520,66 +888,155 @@ export default function TravelMap({ className }: TravelMapProps) {
             )}
           </div>
         </div>
-      )}
+  );
 
-      {!loading && selectedYear && !selectedMonth && stats.points > 0 && (
+  const statusCard = !loading && (selectedYear || selectedMonth || playAll || animating) && stats.points > 0 && (
         <div className="absolute top-3 right-3 z-[1000]">
-          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg shadow-lg shadow-black/10 border border-warm-200/50 dark:border-gray-700/50 px-3 py-2">
+          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg shadow-lg shadow-black/10 border border-warm-200/50 dark:border-gray-700/50 px-3 py-2 min-w-[160px]">
             <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
-              {selectedYear}年 我的轨迹
+              {journeyDate || `${journeyTitle} 我的轨迹`}
             </div>
+            {placeLabel && (
+              <div className="mt-1.5 text-xs text-gray-600 dark:text-gray-300 leading-snug">
+                <div>{placeLabel.country}</div>
+                {(placeLabel.region || placeLabel.city) && (
+                  <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                    {[placeLabel.region, placeLabel.city].filter(Boolean).join(" · ")}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {stats.points.toLocaleString()} 个点 · {stats.distance.toLocaleString()} km
-              {animating && (
+              {stats.distance.toLocaleString()} km
+              {animating ? (
                 <button
                   onClick={togglePause}
                   className="ml-1.5 inline-block text-forest-500 hover:text-forest-600 dark:text-forest-400 dark:hover:text-forest-300 transition-colors cursor-pointer"
                 >
-                  {paused ? "⏸ 已暂停" : "▸ 回放中"}
+                  {paused ? "⏸ 已暂停" : "▸ 旅程中"}
+                </button>
+              ) : (
+                <button
+                  onClick={replayRoute}
+                  className="ml-1.5 text-forest-500 hover:text-forest-600 dark:text-forest-400 dark:hover:text-forest-300 underline underline-offset-2 transition-colors"
+                >
+                  再次回放
+                </button>
+              )}
+              {playAll && !selectedYear && (
+                <button
+                  onClick={() => setPlayAll(false)}
+                  className="ml-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                >
+                  退出
                 </button>
               )}
             </div>
-          </div>
-        </div>
-      )}
-
-      {!loading && selectedMonth && (
-        <div className="absolute top-3 right-3 z-[1000]">
-          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg shadow-lg shadow-black/10 border border-warm-200/50 dark:border-gray-700/50 px-3 py-2">
-            <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
-              {selectedMonth.label} 我的轨迹
-            </div>
-            {stats.points > 0 ? (
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                {stats.points.toLocaleString()} 个点 · {stats.distance.toLocaleString()} km
-                {animating ? (
-                  <button
-                    onClick={togglePause}
-                    className="ml-1.5 inline-block text-forest-500 hover:text-forest-600 dark:text-forest-400 dark:hover:text-forest-300 transition-colors cursor-pointer"
-                  >
-                    {paused ? "⏸ 已暂停" : "▸ 回放中"}
-                  </button>
-                ) : (
-                  <button
-                    onClick={replayRoute}
-                    className="ml-1.5 text-forest-500 hover:text-forest-600 dark:text-forest-400 dark:hover:text-forest-300 underline underline-offset-2 transition-colors"
-                  >
-                    再次回放
-                  </button>
-                )}
+            {!fullscreen && (animating || progress > 0) && (
+              <div className="mt-2 h-1 rounded-full bg-warm-100 dark:bg-gray-800 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-sunset-500 transition-[width] duration-75"
+                  style={{ width: `${Math.round(progress * 100)}%` }}
+                />
               </div>
-            ) : (
-              <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">这个月没有轨迹数据 🫠</div>
             )}
+            {!fullscreen && speedControl(true)}
+          </div>
+        </div>
+  );
+
+  const loadingOverlay = (loading || preparing) && (
+        <div className={`absolute inset-0 flex items-center justify-center bg-warm-50/80 dark:bg-gray-900/80 ${fullscreen ? "" : "rounded-2xl"} pointer-events-none z-[1100]`}>
+          <PageLoading
+            size="md"
+            text={
+              preparing
+                ? prepareProgress.total > 0
+                  ? `地图加载中 ${prepareProgress.loaded}/${prepareProgress.total}`
+                  : "正在准备地图…"
+                : "地图上，又画了一条线。"
+            }
+          />
+        </div>
+  );
+
+  if (fullscreen) {
+    return (
+      <div className={`flex h-full w-full flex-col overflow-hidden bg-cream dark:bg-gray-950 ${className || ""}`}>
+        <div className="relative min-h-0 w-full" style={{ height: "80%" }}>
+          <div ref={mapRef} className="absolute inset-0 overflow-hidden" />
+          {yearPicker}
+          {statusCard}
+          {loadingOverlay}
+        </div>
+        <div className="flex min-h-0 w-full flex-col justify-center gap-3 border-t border-warm-200/50 bg-cream px-4 py-3 dark:border-gray-800/50 dark:bg-gray-950 sm:px-8" style={{ height: "20%" }}>
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-5">
+            {onExit && (
+              <button
+                onClick={onExit}
+                className="rounded-md px-3 py-1.5 text-xs text-gray-600 transition-colors hover:bg-warm-100 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                ✕ 退出全屏
+              </button>
+            )}
+            {Object.entries(YEAR_COLORS).map(([year, color]) => (
+              <div key={year} className="flex items-center gap-1.5 text-sm">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
+                <span className="text-gray-500 dark:text-gray-400">{year}</span>
+              </div>
+            ))}
+            {stats.points > 0 && (
+              <>
+                <span className="text-gray-300 dark:text-gray-700">|</span>
+                <span className="font-mono text-sm text-sunset-500">{stats.distance.toLocaleString()} km</span>
+              </>
+            )}
+            <button
+              onClick={() => (animating ? togglePause() : playAll || selectedYear || selectedMonth ? replayRoute() : setPlayAll(true))}
+              className="rounded-full bg-forest-600 px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-forest-700 dark:bg-forest-500 dark:hover:bg-forest-600"
+            >
+              {animating ? (paused ? "▸ 继续" : "⏸ 暂停") : "▸ 播放旅程"}
+            </button>
+          </div>
+          <div className="mx-auto w-full max-w-3xl" onPointerDown={(e) => e.stopPropagation()}>
+            <div className="mb-1 flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400">
+              <span>回放进度</span>
+              <span className="font-mono">{Math.round(progress * 100)}%</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.001}
+              value={progress}
+              disabled={!animating}
+              onChange={(e) => handleSeek(Number(e.target.value))}
+              className="journey-seek w-full"
+              aria-label="回放进度"
+            />
+          </div>
+          <div className="mx-auto w-full max-w-md">{speedControl(false)}</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`relative ${className || ""}`}>
+      <div
+        ref={mapRef}
+        className="w-full h-[360px] md:h-[480px] rounded-2xl overflow-hidden border border-warm-200/40 dark:border-gray-800/40"
+      />
+      {yearPicker}
+      {statusCard}
+      {!loading && !selectedYear && !selectedMonth && !playAll && !animating && (
+        <div className="absolute top-3 right-3 z-[1000]">
+          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg shadow-lg shadow-black/10 border border-warm-200/50 dark:border-gray-700/50 px-3 py-2 w-[160px]">
+            {speedControl(false)}
           </div>
         </div>
       )}
-
-      {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-warm-50/80 dark:bg-gray-900/80 rounded-2xl pointer-events-none">
-          <PageLoading size="md" text="地图上，又画了一条线。" />
-        </div>
-      )}
+      {loadingOverlay}
 
       {!loading && stats.points > 0 && !selectedMonth && !selectedYear && (
         <div className="mt-4 flex flex-wrap items-center justify-center gap-4 md:gap-6 text-sm">
@@ -591,23 +1048,18 @@ export default function TravelMap({ className }: TravelMapProps) {
           ))}
           <span className="text-gray-300 dark:text-gray-700">|</span>
           <span className="text-gray-500 dark:text-gray-400">
-            <span className="font-mono text-forest-600 dark:text-forest-400">406,550</span> 个点
-          </span>
-          <span className="text-gray-500 dark:text-gray-400">
             <span className="font-mono text-sunset-500">{stats.distance.toLocaleString()}</span> km
           </span>
+          {!playAll && (
+            <button
+              onClick={() => (onPlayAll ? onPlayAll() : setPlayAll(true))}
+              className="px-3 py-1 rounded-full text-xs font-medium bg-forest-600 text-white dark:bg-forest-500 hover:bg-forest-700 dark:hover:bg-forest-600 transition-colors"
+            >
+              ▸ 播放旅程
+            </button>
+          )}
         </div>
       )}
     </div>
   );
-}
-
-function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }

@@ -10,6 +10,7 @@ import Photos from "@/pages/Photos";
 import About from "@/pages/About";
 import Now from "@/pages/Now";
 import Friends from "@/pages/Friends";
+import Footprints from "@/pages/Footprints";
 import { useEffect } from "react";
 
 function ScrollToTop() {
@@ -28,6 +29,7 @@ function AnimatedRoutes() {
         <Route path="/" element={<Home />} />
         <Route path="/blog" element={<BlogList />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
+        <Route path="/footprints" element={<Footprints />} />
         <Route path="/photos" element={<Photos />} />
         <Route path="/about" element={<About />} />
         <Route path="/now" element={<Now />} />
@@ -53,18 +55,28 @@ function AnimatedRoutes() {
   );
 }
 
+function Shell() {
+  const { pathname } = useLocation();
+  const theater = pathname === "/footprints";
+
+  return (
+    <>
+      <ScrollToTop />
+      {!theater && <div className="noise-overlay" />}
+      {!theater && <Navbar />}
+      <main className={theater ? "" : "min-h-screen"}>
+        <AnimatedRoutes />
+      </main>
+      {!theater && <Footer />}
+      {!theater && <EasterEgg />}
+    </>
+  );
+}
+
 export default function App() {
   return (
     <Router>
-      <ScrollToTop />
-      {/* noise overlay — 胶片颗粒感，哈哈我超喜欢这种质感 */}
-      <div className="noise-overlay" />
-      <Navbar />
-      <main className="min-h-screen">
-        <AnimatedRoutes />
-      </main>
-      <Footer />
-      <EasterEgg />
+      <Shell />
     </Router>
   );
 }

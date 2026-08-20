@@ -5,10 +5,12 @@ import { Menu, X, Sun, Moon } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import LanguageSwitcher, { applyLang, isNonChineseLang, LANGUAGES, DISCLAIMER_ACK_KEY } from "./LanguageSwitcher";
 import TranslationDisclaimer from "./TranslationDisclaimer";
+import { requestAppFullscreen } from "@/lib/fullscreen";
 
 const navItems = [
   { path: "/", label: "首页", emoji: "🎒" },
   { path: "/blog", label: "博客", emoji: "✍️" },
+  { path: "/footprints", label: "足迹", emoji: "🗺️" },
   { path: "/photos", label: "照片", emoji: "📷" },
   { path: "/about", label: "关于", emoji: "🫠" },
   { path: "/now", label: "现在", emoji: "📍" },
@@ -70,6 +72,9 @@ export default function Navbar() {
                   <Link
                     key={item.path}
                     to={item.path}
+                    onClick={() => {
+                      if (item.path === "/footprints") void requestAppFullscreen();
+                    }}
                     className={`relative px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-warm-100 dark:hover:bg-gray-800 ${
                       isActive ? "text-forest-700 dark:text-forest-400 font-medium" : "text-gray-600 dark:text-gray-400"
                     }`}
@@ -125,7 +130,10 @@ export default function Navbar() {
                     <Link
                       key={item.path}
                       to={item.path}
-                      onClick={() => setIsOpen(false)}
+                      onClick={() => {
+                        setIsOpen(false);
+                        if (item.path === "/footprints") void requestAppFullscreen();
+                      }}
                       className={`block px-4 py-3 rounded-lg text-base transition-colors ${
                         isActive
                           ? "bg-warm-100 dark:bg-gray-800 text-forest-700 dark:text-forest-400 font-medium"
