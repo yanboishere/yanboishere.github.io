@@ -30,7 +30,6 @@ import {
   type WorldCamera,
 } from "@/lib/journey";
 import { drawJourneyFrame, sizePlayCanvas, type TileCache } from "@/lib/journey-canvas";
-import { createPlaceTracker, type PlaceInfo } from "@/lib/reverse-geocode";
 
 const TILE_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 const DARK_TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
@@ -211,8 +210,6 @@ export default function TravelMap({
   const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState(0);
   const [journeyDate, setJourneyDate] = useState("");
-  const [placeLabel, setPlaceLabel] = useState<PlaceInfo | null>(null);
-  const placeTrackerRef = useRef<ReturnType<typeof createPlaceTracker> | null>(null);
   const [playAll, setPlayAll] = useState(autoPlay);
   const fullscreen = variant === "fullscreen";
   const [playbackSpeed, setPlaybackSpeed] = useState(DEFAULT_SPEED);
@@ -250,9 +247,6 @@ export default function TravelMap({
     setPreparing(false);
     setProgress(0);
     progressSeekRef.current = null;
-    setPlaceLabel(null);
-    placeTrackerRef.current?.cancel();
-    placeTrackerRef.current = null;
     pausedRef.current = false;
     pausedAtRef.current = 0;
     totalPausedRef.current = 0;
@@ -351,10 +345,6 @@ export default function TravelMap({
       setProgress(0);
       setStats({ points: filtered.length, distance: Math.round(route.totalKm) });
       setJourneyDate(formatJourneyMonth(route.timestamps[0]));
-      setPlaceLabel(null);
-      placeTrackerRef.current?.cancel();
-      const tracker = createPlaceTracker((info) => setPlaceLabel(info));
-      placeTrackerRef.current = tracker;
 
       totalPausedRef.current = 0;
       let phase: "play" | "ending" | "hold" = "play";
@@ -404,7 +394,6 @@ export default function TravelMap({
           setJourneyDate(label);
         }
         lastDistanceKm = distanceKm;
-        tracker.update(headPos[0], headPos[1]);
         return headPos;
       }
 
@@ -617,7 +606,9 @@ export default function TravelMap({
     map.setView([20, 80], 3);
     mapInstanceRef.current = map;
 
-    L.control.zoom({ position: "bottomright" }).addTo(map);
+    if (!fullscreen) {
+      L.control.zoom({ position: "bottomright" }).addTo(map);
+    }
     map.attributionControl.setPrefix(false);
     map.attributionControl.addAttribution('© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>');
 
@@ -745,31 +736,38 @@ export default function TravelMap({
     if (animating) progressSeekRef.current = next;
   };
 
-  const speedControl = (withDivider = false) => (
-    <label
-      className={`block ${withDivider ? "mt-2 pt-2 border-t border-warm-200/60 dark:border-gray-700/60" : ""}`}
-      onPointerDown={(e) => e.stopPropagation()}
-    >
-      <div className="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400 mb-1">
-        <span>回放速度</span>
-        <span className="font-mono text-forest-600 dark:text-forest-400">{formatSpeed(playbackSpeed)}</span>
-      </div>
-      <input
-        type="range"
-        min={SPEED_MIN}
-        max={SPEED_MAX}
-        step={SPEED_STEP}
-        value={playbackSpeed}
-        onChange={(e) => handleSpeedChange(Number(e.target.value))}
-        className="journey-speed w-full"
-        aria-label="回放速度"
-      />
-      <div className="flex justify-between text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">
-        <span>0.1x</span>
-        <span>5x</span>
-      </div>
-    </label>
-  );
+  const speedControl = (opts?: { withDivider?: boolean; compact?: boolean }) => {
+    const withDivider = opts?.withDivider ?? false;
+    const compact = opts?.compact ?? false;
+    return (
+      <label
+        className={`block ${withDivider ? "mt-2 pt-2 border-t border-warm-200/60 dark:border-gray-700/60" : ""}`}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <div className="mb-0.5 flex items-center justify-between gap-2 whitespace-nowrap text-[10px] text-gray-500 dark:text-gray-400">
+          <span>回放速度</span>
+          <span className="font-mono text-forest-600 dark:text-forest-400">{formatSpeed(playbackSpeed)}</span>
+        </div>
+        <input
+          type="range"
+          min={SPEED_MIN}
+          max={SPEED_MAX}
+          step={SPEED_STEP}
+          value={playbackSpeed}
+          onInput={(e) => handleSpeedChange(Number((e.target as HTMLInputElement).value))}
+          onChange={(e) => handleSpeedChange(Number(e.target.value))}
+          className="journey-speed w-full"
+          aria-label="回放速度"
+        />
+        {!compact && (
+          <div className="mt-0.5 flex justify-between text-[9px] text-gray-400 dark:text-gray-500">
+            <span>0.1x</span>
+            <span>5x</span>
+          </div>
+        )}
+      </label>
+    );
+  };
 
   const groupedByYear = useMemo(() => {
     const groups: Record<string, MonthInfo[]> = {};
@@ -788,8 +786,8 @@ export default function TravelMap({
       : "全部旅程";
 
   const yearPicker = !loading && availableMonths.length > 0 && (
-        <div className="absolute top-3 left-3 z-[1000]">
-          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-xl shadow-lg shadow-black/10 border border-warm-200/50 dark:border-gray-700/50 p-3 w-[180px] md:w-[200px]">
+        <div className="absolute left-3 z-[1000]" style={{ top: "max(0.75rem, env(safe-area-inset-top))" }}>
+          <div className="max-h-[min(42vh,280px)] w-[min(180px,calc(100vw-1.5rem))] overflow-y-auto bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-xl shadow-lg shadow-black/10 border border-warm-200/50 dark:border-gray-700/50 p-3 landscape:max-h-[min(28vh,168px)] landscape:p-2 md:w-[200px]">
             <div className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2 flex items-center gap-1.5">
               📅 {selectedYear ? `${selectedYear}年` : "选择年份"}
             </div>
@@ -891,21 +889,11 @@ export default function TravelMap({
   );
 
   const statusCard = !loading && (selectedYear || selectedMonth || playAll || animating) && stats.points > 0 && (
-        <div className="absolute top-3 right-3 z-[1000]">
-          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg shadow-lg shadow-black/10 border border-warm-200/50 dark:border-gray-700/50 px-3 py-2 min-w-[160px]">
+        <div className="absolute right-3 z-[1000]" style={{ top: "max(0.75rem, env(safe-area-inset-top))" }}>
+          <div className="max-w-[min(220px,calc(100vw-1.5rem))] bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg shadow-lg shadow-black/10 border border-warm-200/50 dark:border-gray-700/50 px-3 py-2 min-w-[148px]">
             <div className="text-[1.3125rem] font-medium leading-snug text-gray-800 dark:text-gray-200">
               {journeyDate || `${journeyTitle} 我的轨迹`}
             </div>
-            {placeLabel && (
-              <div className="mt-1.5 text-xs text-gray-600 dark:text-gray-300 leading-snug">
-                <div>{placeLabel.country}</div>
-                {(placeLabel.region || placeLabel.city) && (
-                  <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                    {[placeLabel.region, placeLabel.city].filter(Boolean).join(" · ")}
-                  </div>
-                )}
-              </div>
-            )}
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               {stats.distance.toLocaleString()} km
               {animating ? (
@@ -940,7 +928,7 @@ export default function TravelMap({
                 />
               </div>
             )}
-            {!fullscreen && speedControl(true)}
+            {!fullscreen && speedControl({ withDivider: true })}
           </div>
         </div>
   );
@@ -962,60 +950,74 @@ export default function TravelMap({
 
   if (fullscreen) {
     return (
-      <div className={`flex h-full w-full flex-col overflow-hidden bg-cream dark:bg-gray-950 ${className || ""}`}>
-        <div className="relative min-h-0 w-full" style={{ height: "80%" }}>
+      <div className={`flex h-full min-h-0 w-full flex-col overflow-hidden bg-cream dark:bg-gray-950 ${className || ""}`}>
+        <div className="relative min-h-0 w-full flex-1">
           <div ref={mapRef} className="absolute inset-0 overflow-hidden" />
           {yearPicker}
           {statusCard}
           {loadingOverlay}
         </div>
-        <div className="flex min-h-0 w-full flex-col justify-center gap-3 border-t border-warm-200/50 bg-cream px-4 py-3 dark:border-gray-800/50 dark:bg-gray-950 sm:px-8" style={{ height: "20%" }}>
-          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-5">
+        <div
+          className="theater-chrome flex w-full flex-none flex-col gap-1.5 border-t border-warm-200/50 bg-cream pt-2 landscape:flex-row landscape:items-center landscape:gap-3 dark:border-gray-800/50 dark:bg-gray-950"
+          style={{
+            paddingBottom: "max(1.75rem, calc(env(safe-area-inset-bottom, 0px) + 1.25rem))",
+            paddingLeft: "max(1rem, calc(env(safe-area-inset-left, 0px) + 0.75rem))",
+            paddingRight: "max(1rem, calc(env(safe-area-inset-right, 0px) + 0.75rem))",
+          }}
+        >
+          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 landscape:flex-none landscape:justify-start">
             {onExit && (
               <button
                 onClick={onExit}
-                className="rounded-md px-3 py-1.5 text-xs text-gray-600 transition-colors hover:bg-warm-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                className="touch-manipulation rounded-md px-3 py-2.5 text-xs text-gray-600 transition-colors hover:bg-warm-100 dark:text-gray-300 dark:hover:bg-gray-800"
               >
-                ✕ 退出全屏
+                ✕ 退出
               </button>
             )}
-            {Object.entries(YEAR_COLORS).map(([year, color]) => (
-              <div key={year} className="flex items-center gap-1.5 text-sm">
-                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
-                <span className="text-gray-500 dark:text-gray-400">{year}</span>
-              </div>
-            ))}
+            <div className="hidden items-center gap-3 min-[1100px]:flex">
+              {Object.entries(YEAR_COLORS).map(([year, color]) => (
+                <div key={year} className="flex items-center gap-1.5 text-sm">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
+                  <span className="text-gray-500 dark:text-gray-400">{year}</span>
+                </div>
+              ))}
+            </div>
             {stats.points > 0 && (
-              <>
-                <span className="text-gray-300 dark:text-gray-700">|</span>
-                <span className="font-mono text-sm text-sunset-500">{stats.distance.toLocaleString()} km</span>
-              </>
+              <span className="font-mono text-sm text-sunset-500 landscape:max-[1099px]:hidden">
+                {stats.distance.toLocaleString()} km
+              </span>
             )}
             <button
               onClick={() => (animating ? togglePause() : playAll || selectedYear || selectedMonth ? replayRoute() : setPlayAll(true))}
-              className="rounded-full bg-forest-600 px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-forest-700 dark:bg-forest-500 dark:hover:bg-forest-600"
+              className="touch-manipulation min-h-11 rounded-full bg-forest-600 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-forest-700 landscape:min-h-9 dark:bg-forest-500 dark:hover:bg-forest-600"
             >
               {animating ? (paused ? "▸ 继续" : "⏸ 暂停") : "▸ 播放旅程"}
             </button>
           </div>
-          <div className="mx-auto w-full max-w-3xl" onPointerDown={(e) => e.stopPropagation()}>
-            <div className="mb-1 flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400">
-              <span>回放进度</span>
-              <span className="font-mono">{Math.round(progress * 100)}%</span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.001}
-              value={progress}
-              disabled={!animating}
-              onChange={(e) => handleSeek(Number(e.target.value))}
-              className="journey-seek w-full"
-              aria-label="回放进度"
-            />
+          <div
+            className="mx-auto grid w-full max-w-3xl grid-cols-2 gap-x-3 landscape:mx-0 landscape:max-w-none landscape:flex-1"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <label className="block min-w-0">
+              <div className="mb-0.5 flex items-center justify-between gap-2 whitespace-nowrap text-[10px] text-gray-500 dark:text-gray-400">
+                <span>回放进度</span>
+                <span className="font-mono">{Math.round(progress * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.001}
+                value={progress}
+                disabled={!animating}
+                onInput={(e) => handleSeek(Number((e.target as HTMLInputElement).value))}
+                onChange={(e) => handleSeek(Number(e.target.value))}
+                className="journey-seek w-full"
+                aria-label="回放进度"
+              />
+            </label>
+            <div className="min-w-0">{speedControl({ compact: true })}</div>
           </div>
-          <div className="mx-auto w-full max-w-md">{speedControl(false)}</div>
         </div>
       </div>
     );
@@ -1032,7 +1034,7 @@ export default function TravelMap({
       {!loading && !selectedYear && !selectedMonth && !playAll && !animating && (
         <div className="absolute top-3 right-3 z-[1000]">
           <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg shadow-lg shadow-black/10 border border-warm-200/50 dark:border-gray-700/50 px-3 py-2 w-[160px]">
-            {speedControl(false)}
+            {speedControl()}
           </div>
         </div>
       )}
