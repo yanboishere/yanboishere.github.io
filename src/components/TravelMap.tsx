@@ -36,7 +36,7 @@ const TILE_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/
 const DARK_TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
 const JOURNEY_COLOR = "#ec6322";
 const SPEED_MIN = 0.1;
-const SPEED_MAX = 3;
+const SPEED_MAX = 5;
 const SPEED_STEP = 0.1;
 const DEFAULT_SPEED = 1;
 
@@ -766,7 +766,7 @@ export default function TravelMap({
       />
       <div className="flex justify-between text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">
         <span>0.1x</span>
-        <span>3x</span>
+        <span>5x</span>
       </div>
     </label>
   );
