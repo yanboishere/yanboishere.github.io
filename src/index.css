@@ -208,6 +208,27 @@
     opacity: 1 !important;
   }
 
+  .leaflet-bottom.leaflet-left .leaflet-control-scale {
+    margin: 12px;
+  }
+
+  .leaflet-control-scale-line {
+    background: rgba(255, 255, 255, 0.92);
+    border: 2px solid #2d6a4f;
+    border-top: none;
+    color: #374151;
+    font-size: 11px;
+    line-height: 1.2;
+    padding: 2px 6px 1px;
+    text-shadow: none;
+  }
+
+  .dark .leaflet-control-scale-line {
+    background: rgba(17, 24, 39, 0.9);
+    border-color: #52b788;
+    color: #e5e7eb;
+  }
+
   .journey-play-canvas {
     position: absolute;
     inset: 0;

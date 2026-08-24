@@ -30,6 +30,15 @@ import {
   type WorldCamera,
 } from "@/lib/journey";
 import { drawJourneyFrame, sizePlayCanvas, type TileCache } from "@/lib/journey-canvas";
+import {
+  citiesForProvince,
+  colorForPlace,
+  countBy,
+  hitAt,
+  shortProvince,
+  type PlaceCatalog,
+} from "@/lib/travel-places";
+import { filterDotIndices, mountDotCanvas, parseTravelDots, type PackedDots } from "@/lib/travel-dots";
 
 const TILE_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 const DARK_TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
@@ -60,6 +69,76 @@ interface MonthInfo {
   pointCount: number;
 }
 
+type JourneyQuery = {
+  year?: string | null;
+  month?: MonthInfo | null;
+  country?: string | null;
+  province?: string | null;
+  city?: string | null;
+};
+
+type PickerTab = "time" | "place";
+type TrackView = "line" | "scatter";
+
+function addTrackLayers(map: L.Map, data: RawPoint[], mode: TrackView, color?: string): L.Layer[] {
+  const layers: L.Layer[] = [];
+  if (data.length === 0) return layers;
+
+  if (mode === "scatter") {
+    const renderer = L.canvas({ padding: 0.5 });
+    const group = L.layerGroup();
+    for (const p of data) {
+      const yr = new Date(p[2] * 1000).getFullYear().toString();
+      const fill = color || YEAR_COLORS[yr] || "#dda75c";
+      L.circleMarker([p[0], p[1]], {
+        radius: 1.5,
+        stroke: false,
+        fillColor: fill,
+        fillOpacity: 0.75,
+        renderer,
+      }).addTo(group);
+    }
+    group.addTo(map);
+    layers.push(group);
+    return layers;
+  }
+
+  if (color) {
+    const line = L.polyline(
+      data.map((p) => [p[0], p[1]] as L.LatLngExpression),
+      {
+        color,
+        weight: 2.5,
+        opacity: 0.85,
+        smoothFactor: 1.5,
+        lineCap: "round",
+        lineJoin: "round",
+      }
+    ).addTo(map);
+    layers.push(line);
+    return layers;
+  }
+
+  const grouped: Record<string, L.LatLngExpression[]> = {};
+  for (const p of data) {
+    const yr = new Date(p[2] * 1000).getFullYear().toString();
+    if (!grouped[yr]) grouped[yr] = [];
+    grouped[yr].push([p[0], p[1]]);
+  }
+  for (const [yr, pts] of Object.entries(grouped)) {
+    const line = L.polyline(pts, {
+      color: YEAR_COLORS[yr] || "#dda75c",
+      weight: 2.5,
+      opacity: 0.85,
+      smoothFactor: 1.5,
+      lineCap: "round",
+      lineJoin: "round",
+    }).addTo(map);
+    layers.push(line);
+  }
+  return layers;
+}
+
 function getMonthTsRange(year: number, month: number) {
   const start = new Date(year, month - 1, 1);
   start.setHours(0, 0, 0, 0);
@@ -71,10 +150,70 @@ function getMonthTsRange(year: number, month: number) {
   };
 }
 
+function filterRoutePoints(data: RawPoint[], catalog: PlaceCatalog | null, query: JourneyQuery): RawPoint[] {
+  const month = query.month ?? null;
+  const year = query.year ?? null;
+  const country = query.country ?? null;
+  const province = query.province ?? null;
+  const city = query.city ?? null;
+  return data.filter((p, i) => {
+    if (month) {
+      const { startTs, endTs } = getMonthTsRange(month.year, month.month);
+      return p[2] >= startTs && p[2] <= endTs;
+    }
+    if (year) return new Date(p[2] * 1000).getFullYear().toString() === year;
+    if (catalog && (country || province || city)) {
+      const hit = hitAt(catalog, i);
+      if (city) return hit.city === city && (!province || hit.province === province);
+      if (province) return hit.province === province;
+      return hit.country === country;
+    }
+    return true;
+  });
+}
+
 function applyCamera(map: L.Map, camera: WorldCamera) {
   const size = map.getSize();
   const view = cameraToLeaflet(camera, size.x, size.y);
   map.setView(view.center, view.zoom, { animate: false });
+}
+
+/** 1cm on screen must represent at least 1km → cannot zoom in closer than ~1:100000. */
+const MIN_METERS_PER_CM = 1000;
+const CSS_PX_PER_CM = 96 / 2.54;
+const EARTH_CIRCUMFERENCE_M = 40075016.686;
+
+function maxZoomForOneKmPerCm(lat: number): number {
+  const cos = Math.max(Math.cos((lat * Math.PI) / 180), 0.01);
+  const metersPerPixelAtZ0 = (EARTH_CIRCUMFERENCE_M * cos) / 256;
+  const minMetersPerPixel = MIN_METERS_PER_CM / CSS_PX_PER_CM;
+  return Math.min(15, Math.max(2, Math.log2(metersPerPixelAtZ0 / minMetersPerPixel)));
+}
+
+function applyZoomLimit(map: L.Map) {
+  const maxZ = Math.round(maxZoomForOneKmPerCm(map.getCenter().lat) * 4) / 4;
+  const currentMax = map.getMaxZoom();
+  if (Math.abs(currentMax - maxZ) >= 0.25) {
+    map.setMaxZoom(maxZ);
+  }
+  if (map.getZoom() > maxZ + 0.05) {
+    map.setZoom(maxZ, { animate: false });
+  }
+}
+
+function setMapIdle(map: L.Map, idle: boolean) {
+  if (idle) {
+    map.dragging.enable();
+    map.scrollWheelZoom.enable();
+    map.touchZoom.enable();
+    map.doubleClickZoom.enable();
+    applyZoomLimit(map);
+  } else {
+    map.dragging.disable();
+    map.scrollWheelZoom.disable();
+    map.touchZoom.disable();
+    map.doubleClickZoom.disable();
+  }
 }
 
 function retinaSuffix(): string {
@@ -106,7 +245,7 @@ function createBasemap(dark: boolean): L.TileLayer {
     maxZoom: 19,
     keepBuffer: 12,
     updateWhenZooming: false,
-    updateWhenIdle: false,
+    updateWhenIdle: true,
     className: "journey-basemap",
   }) as SmoothTileLayer;
 
@@ -193,7 +332,7 @@ interface TravelMapProps {
 export default function TravelMap({
   className,
   variant = "embedded",
-  autoPlay = false,
+  autoPlay: _autoPlay = false,
   onPlayAll,
   onExit,
 }: TravelMapProps) {
@@ -202,7 +341,9 @@ export default function TravelMap({
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const isDarkRef = useRef(false);
   const rawDataRef = useRef<RawPoint[]>([]);
-  const layersRef = useRef<L.Layer[]>([]);
+  const layersRef = useRef<Array<L.Layer | { remove: () => void }>>([]);
+  const dotsRef = useRef<PackedDots | null>(null);
+  const dotsLoadingRef = useRef<Promise<PackedDots | null> | null>(null);
   const animFrameRef = useRef<number>(0);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ points: 0, distance: 0 });
@@ -210,7 +351,8 @@ export default function TravelMap({
   const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState(0);
   const [journeyDate, setJourneyDate] = useState("");
-  const [playAll, setPlayAll] = useState(autoPlay);
+  const [playAll, setPlayAll] = useState(false);
+  const [finished, setFinished] = useState(false);
   const fullscreen = variant === "fullscreen";
   const [playbackSpeed, setPlaybackSpeed] = useState(DEFAULT_SPEED);
   const playbackSpeedRef = useRef(DEFAULT_SPEED);
@@ -226,6 +368,22 @@ export default function TravelMap({
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<MonthInfo | null>(null);
   const [availableMonths, setAvailableMonths] = useState<MonthInfo[]>([]);
+  const [pickerTab, setPickerTab] = useState<PickerTab>("time");
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [placeCatalog, setPlaceCatalog] = useState<PlaceCatalog | null>(null);
+  const placeCatalogRef = useRef<PlaceCatalog | null>(null);
+  const [trackView, setTrackView] = useState<TrackView>("line");
+  const trackViewRef = useRef<TrackView>("line");
+  const filterRef = useRef<JourneyQuery>({});
+  filterRef.current = {
+    month: selectedMonth,
+    year: selectedYear,
+    country: selectedCountry,
+    province: selectedProvince,
+    city: selectedCity,
+  };
 
   const clearLayers = useCallback((map: L.Map) => {
     if (animFrameRef.current) {
@@ -240,7 +398,10 @@ export default function TravelMap({
     if (panes.tilePane) panes.tilePane.style.visibility = "";
     if (panes.overlayPane) panes.overlayPane.style.visibility = "";
     if (panes.markerPane) panes.markerPane.style.visibility = "";
-    for (const layer of layersRef.current) map.removeLayer(layer);
+    for (const layer of layersRef.current) {
+      if (layer instanceof L.Layer) map.removeLayer(layer);
+      else layer.remove();
+    }
     layersRef.current = [];
     setAnimating(false);
     setPaused(false);
@@ -250,8 +411,79 @@ export default function TravelMap({
     pausedRef.current = false;
     pausedAtRef.current = 0;
     totalPausedRef.current = 0;
-    map.dragging.enable();
+    setMapIdle(map, true);
   }, []);
+
+  const ensureDots = useCallback(() => {
+    if (dotsRef.current) return Promise.resolve(dotsRef.current);
+    if (!dotsLoadingRef.current) {
+      dotsLoadingRef.current = fetch("/travel-dots.bin")
+        .then((res) => {
+          if (!res.ok) throw new Error("travel-dots");
+          return res.arrayBuffer();
+        })
+        .then(parseTravelDots)
+        .then((dots) => {
+          dotsRef.current = dots;
+          return dots;
+        })
+        .catch(() => {
+          dotsLoadingRef.current = null;
+          return null;
+        });
+    }
+    return dotsLoadingRef.current;
+  }, []);
+
+  const queryColor = (q: JourneyQuery) =>
+    q.year
+      ? YEAR_COLORS[q.year]
+      : q.month
+        ? YEAR_COLORS[String(q.month.year)]
+        : q.country
+          ? colorForPlace(q.city || q.province || q.country)
+          : undefined;
+
+  const paintOverviewLayers = (map: L.Map, simplified: RawPoint[]) => {
+    for (const layer of layersRef.current) {
+      if (layer instanceof L.Layer) map.removeLayer(layer);
+      else layer.remove();
+    }
+    layersRef.current = [];
+    const q = filterRef.current;
+    const color = queryColor(q);
+    const mode = trackViewRef.current;
+    if (mode === "scatter" && dotsRef.current) {
+      const dots = dotsRef.current;
+      const indices = filterDotIndices(dots, {
+        year: q.year,
+        monthYear: q.month?.year,
+        monthIndex: q.month?.month,
+        country: q.country,
+        province: q.province,
+        city: q.city,
+      });
+      layersRef.current.push(
+        mountDotCanvas(map, dots, indices, (i) => {
+          if (color) return color;
+          const y = new Date(dots.monthTs[i] * 1000).getFullYear().toString();
+          return YEAR_COLORS[y] || "#dda75c";
+        })
+      );
+      return indices ? indices.length : dots.count;
+    }
+    layersRef.current.push(...addTrackLayers(map, simplified, mode, color));
+    if (mode === "scatter") {
+      void ensureDots().then((dots) => {
+        if (!dots || trackViewRef.current !== "scatter" || mapInstanceRef.current !== map) return;
+        const n = paintOverviewLayers(map, simplified);
+        if (typeof n === "number") {
+          setStats((prev) => ({ ...prev, points: n }));
+        }
+      });
+    }
+    return simplified.length;
+  };
 
   const showOverview = useCallback(
     (map: L.Map, data: RawPoint[]) => {
@@ -259,24 +491,7 @@ export default function TravelMap({
       if (data.length === 0) return;
 
       const allCoords: L.LatLngExpression[] = data.map((p) => [p[0], p[1]]);
-      const grouped: Record<string, L.LatLngExpression[]> = {};
-      for (const p of data) {
-        const yr = new Date(p[2] * 1000).getFullYear().toString();
-        if (!grouped[yr]) grouped[yr] = [];
-        grouped[yr].push([p[0], p[1]]);
-      }
-      for (const [yr, pts] of Object.entries(grouped)) {
-        const color = YEAR_COLORS[yr] || "#dda75c";
-        const line = L.polyline(pts, {
-          color,
-          weight: 2.5,
-          opacity: 0.85,
-          smoothFactor: 1.5,
-          lineCap: "round",
-          lineJoin: "round",
-        }).addTo(map);
-        layersRef.current.push(line);
-      }
+      const pointCount = paintOverviewLayers(map, data);
 
       map.fitBounds(L.latLngBounds(allCoords), { padding: [30, 30], maxZoom: 5 });
 
@@ -286,41 +501,46 @@ export default function TravelMap({
         const b = allCoords[i] as [number, number];
         totalDist += haversineKm(a[0], a[1], b[0], b[1]);
       }
-      setStats({ points: data.length, distance: Math.round(totalDist) });
+      setStats({ points: pointCount, distance: Math.round(totalDist) });
       setJourneyDate("");
+      setFinished(false);
     },
-    [clearLayers]
+    [clearLayers, ensureDots]
   );
 
   const startJourney = useCallback(
-    (map: L.Map, data: RawPoint[], month: MonthInfo | null, year: string | null) => {
+    (map: L.Map, data: RawPoint[], query: JourneyQuery = {}) => {
       clearLayers(map);
-      map.dragging.disable();
+      setMapIdle(map, false);
 
-      const filtered = month
-        ? data.filter((p) => {
-            const { startTs, endTs } = getMonthTsRange(month.year, month.month);
-            return p[2] >= startTs && p[2] <= endTs;
-          })
-        : year
-          ? data.filter((p) => new Date(p[2] * 1000).getFullYear().toString() === year)
-          : data;
+      const month = query.month ?? null;
+      const year = query.year ?? null;
+      const country = query.country ?? null;
+      const province = query.province ?? null;
+      const city = query.city ?? null;
+      const catalog = placeCatalogRef.current;
+      setFinished(false);
+
+      const filtered = filterRoutePoints(data, catalog, query);
 
       if (filtered.length === 0) {
         setStats({ points: 0, distance: 0 });
-        map.dragging.enable();
+        setMapIdle(map, true);
         return;
       }
 
       const route = buildRoute(filtered);
       if (!route) {
-        map.dragging.enable();
+        setMapIdle(map, true);
         return;
       }
 
-      const color = year ? YEAR_COLORS[year] || JOURNEY_COLOR : JOURNEY_COLOR;
-      const scope = month ? "month" : year ? "year" : "all";
-      const duration = durationMsForScope(scope);
+      const color = year
+        ? YEAR_COLORS[year] || JOURNEY_COLOR
+        : country
+          ? colorForPlace(city || province || country)
+          : JOURNEY_COLOR;
+      const duration = durationMsForScope();
       const windowKm = trailWindowKm(route.totalKm, duration / 1000);
       map.invalidateSize();
       const size = map.getSize();
@@ -401,7 +621,8 @@ export default function TravelMap({
         animFrameRef.current = 0;
         setAnimating(false);
         setProgress(1);
-        map.dragging.enable();
+        setFinished(true);
+        setMapIdle(map, true);
         canvas.remove();
         playCanvasRef.current = null;
         const panes = map.getPanes();
@@ -409,36 +630,7 @@ export default function TravelMap({
         if (panes.overlayPane) panes.overlayPane.style.visibility = "";
         if (panes.markerPane) panes.markerPane.style.visibility = "";
         applyCamera(map, overview);
-
-        if (!year && !month) {
-          const grouped: Record<string, L.LatLngExpression[]> = {};
-          for (const p of filtered) {
-            const yr = new Date(p[2] * 1000).getFullYear().toString();
-            if (!grouped[yr]) grouped[yr] = [];
-            grouped[yr].push([p[0], p[1]]);
-          }
-          for (const [yr, pts] of Object.entries(grouped)) {
-            const line = L.polyline(pts, {
-              color: YEAR_COLORS[yr] || "#dda75c",
-              weight: 2.5,
-              opacity: 0.9,
-              smoothFactor: 1.5,
-              lineCap: "round",
-              lineJoin: "round",
-            }).addTo(map);
-            layersRef.current.push(line);
-          }
-        } else {
-          const overviewLine = L.polyline(overviewPath, {
-            color,
-            weight: 2.5,
-            opacity: 0.85,
-            smoothFactor: 1,
-            lineCap: "round",
-            lineJoin: "round",
-          }).addTo(map);
-          layersRef.current.push(overviewLine);
-        }
+        paintOverviewLayers(map, filtered);
       }
 
       function applyJourneyTime(t: number, outro = 0) {
@@ -560,22 +752,71 @@ export default function TravelMap({
     }
   }, [animating, progress]);
 
-  const replayRoute = useCallback(() => {
+  const currentQuery = useMemo<JourneyQuery>(
+    () => ({
+      month: selectedMonth,
+      year: selectedYear,
+      country: selectedCountry,
+      province: selectedProvince,
+      city: selectedCity,
+    }),
+    [selectedMonth, selectedYear, selectedCountry, selectedProvince, selectedCity]
+  );
+
+  const isPlaceMode = pickerTab === "place";
+
+  const playCurrent = useCallback(() => {
+    if (isPlaceMode) return;
     const map = mapInstanceRef.current;
     const data = rawDataRef.current;
     if (!map || data.length === 0) return;
-    startJourney(map, data, selectedMonth, selectedYear);
-  }, [selectedMonth, selectedYear, startJourney]);
+    const filtered = filterRoutePoints(data, placeCatalogRef.current, currentQuery);
+    if (filtered.length === 0) return;
+    if (!currentQuery.year && !currentQuery.month && !currentQuery.country) setPlayAll(true);
+    startJourney(map, data, currentQuery);
+  }, [currentQuery, isPlaceMode, startJourney]);
+
+  const previewTotalRoute = useCallback(() => {
+    const map = mapInstanceRef.current;
+    const data = rawDataRef.current;
+    if (!map || data.length === 0) return;
+    const filtered = filterRoutePoints(data, placeCatalogRef.current, currentQuery);
+    setPlayAll(false);
+    setFinished(false);
+    showOverview(map, filtered.length ? filtered : data);
+  }, [currentQuery, showOverview]);
+
+  const applyTrackView = (mode: TrackView) => {
+    trackViewRef.current = mode;
+    setTrackView(mode);
+    const map = mapInstanceRef.current;
+    const data = rawDataRef.current;
+    if (!map || data.length === 0 || animating) return;
+    const paint = () => {
+      const filtered = filterRoutePoints(data, placeCatalogRef.current, currentQuery);
+      const n = paintOverviewLayers(map, filtered.length ? filtered : data);
+      if (mode === "scatter") setStats((prev) => ({ ...prev, points: n }));
+    };
+    if (mode === "scatter" && !dotsRef.current) {
+      setPreparing(true);
+      void ensureDots().then(() => {
+        setPreparing(false);
+        if (trackViewRef.current === "scatter" && mapInstanceRef.current === map) paint();
+      });
+      return;
+    }
+    paint();
+  };
+
+  const replayRoute = playCurrent;
 
   const renderCurrent = useCallback(
     (map: L.Map, data: RawPoint[]) => {
-      if (selectedMonth || selectedYear || playAll) {
-        startJourney(map, data, selectedMonth, selectedYear);
-      } else {
-        showOverview(map, data);
-      }
+      const filtered = filterRoutePoints(data, placeCatalogRef.current, currentQuery);
+      setFinished(false);
+      showOverview(map, filtered.length ? filtered : data);
     },
-    [selectedMonth, selectedYear, playAll, startJourney, showOverview]
+    [currentQuery, showOverview]
   );
 
   useEffect(() => {
@@ -589,38 +830,50 @@ export default function TravelMap({
     const map = L.map(container, {
       zoomControl: false,
       attributionControl: true,
-      scrollWheelZoom: fullscreen,
+      scrollWheelZoom: true,
       dragging: true,
       doubleClickZoom: true,
       touchZoom: true,
       minZoom: 2,
-      maxZoom: 16,
+      maxZoom: maxZoomForOneKmPerCm(20),
       zoomSnap: 0,
       zoomDelta: 0.25,
-      zoomAnimation: false,
-      fadeAnimation: false,
+      zoomAnimation: true,
+      fadeAnimation: true,
       markerZoomAnimation: false,
       worldCopyJump: true,
       renderer: L.canvas({ padding: 0.5 }),
     });
     map.setView([20, 80], 3);
     mapInstanceRef.current = map;
-
-    if (!fullscreen) {
-      L.control.zoom({ position: "bottomright" }).addTo(map);
-    }
+    applyZoomLimit(map);
+    map.on("moveend zoomend", () => applyZoomLimit(map));
+    L.control.scale({
+      position: "bottomleft",
+      metric: true,
+      imperial: false,
+      maxWidth: 140,
+    }).addTo(map);
     map.attributionControl.setPrefix(false);
     map.attributionControl.addAttribution('© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>');
 
     const tileLayer = createBasemap(isDark).addTo(map);
     tileLayerRef.current = tileLayer;
 
-    fetch("/travel-route.json")
-      .then((res) => res.json())
-      .then((data: RawPoint[]) => {
+    Promise.all([
+      fetch("/travel-route.json").then((res) => res.json() as Promise<RawPoint[]>),
+      fetch("/travel-places.json")
+        .then((res) => (res.ok ? (res.json() as Promise<PlaceCatalog>) : null))
+        .catch(() => null),
+    ])
+      .then(([data, places]) => {
         if (!alive) return;
         map.invalidateSize();
         rawDataRef.current = data;
+        const catalog =
+          places && Array.isArray(places.hits) && places.hits.length === data.length ? places : null;
+        placeCatalogRef.current = catalog;
+        setPlaceCatalog(catalog);
 
         const monthMap = new Map<string, number>();
         for (const p of data) {
@@ -643,13 +896,7 @@ export default function TravelMap({
         months.sort((a, b) => a.year * 100 + a.month - (b.year * 100 + b.month));
         setAvailableMonths(months);
 
-        if (autoPlay) {
-          setPlayAll(true);
-          setPreparing(true);
-          startJourney(map, data, null, null);
-        } else {
-          showOverview(map, data);
-        }
+        showOverview(map, data);
         setLoading(false);
       })
       .catch((err) => {
@@ -673,14 +920,14 @@ export default function TravelMap({
       mapInstanceRef.current = null;
       tileLayerRef.current = null;
     };
-  }, [showOverview, startJourney, autoPlay, fullscreen]);
+  }, [showOverview, fullscreen]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
     const data = rawDataRef.current;
     if (!map || data.length === 0) return;
     renderCurrent(map, data);
-  }, [selectedMonth, selectedYear, playAll, renderCurrent]);
+  }, [renderCurrent]);
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -698,8 +945,15 @@ export default function TravelMap({
     return () => observer.disconnect();
   }, []);
 
+  const clearPlace = () => {
+    setSelectedCountry(null);
+    setSelectedProvince(null);
+    setSelectedCity(null);
+  };
+
   const handleYearClick = (year: string) => {
     setPlayAll(false);
+    clearPlace();
     if (selectedYear === year) {
       setSelectedYear(null);
       setSelectedMonth(null);
@@ -711,6 +965,7 @@ export default function TravelMap({
 
   const handleMonthClick = (month: MonthInfo) => {
     setPlayAll(false);
+    clearPlace();
     if (selectedMonth?.key === month.key) {
       setSelectedMonth(null);
     } else {
@@ -718,9 +973,44 @@ export default function TravelMap({
     }
   };
 
+  const handleCountryClick = (country: string) => {
+    setPlayAll(false);
+    setSelectedYear(null);
+    setSelectedMonth(null);
+    setSelectedCity(null);
+    if (selectedCountry === country && !selectedProvince) {
+      setSelectedCountry(null);
+      setSelectedProvince(null);
+    } else {
+      setSelectedCountry(country);
+      setSelectedProvince(null);
+    }
+  };
+
+  const handleProvinceClick = (province: string) => {
+    setPlayAll(false);
+    setSelectedYear(null);
+    setSelectedMonth(null);
+    if (selectedProvince === province) {
+      setSelectedProvince(null);
+      setSelectedCity(null);
+    } else {
+      setSelectedProvince(province);
+      setSelectedCity(null);
+    }
+  };
+
+  const handleCityClick = (city: string) => {
+    setPlayAll(false);
+    setSelectedYear(null);
+    setSelectedMonth(null);
+    setSelectedCity(selectedCity === city ? null : city);
+  };
+
   const handleReset = () => {
     setSelectedYear(null);
     setSelectedMonth(null);
+    clearPlace();
     setPlayAll(false);
   };
 
@@ -779,131 +1069,365 @@ export default function TravelMap({
     return groups;
   }, [availableMonths]);
 
-  const journeyTitle = selectedMonth
-    ? selectedMonth.label
-    : selectedYear
-      ? `${selectedYear}年`
-      : "全部旅程";
+  const countryRows = useMemo(
+    () => (placeCatalog ? countBy(placeCatalog, "country") : []),
+    [placeCatalog]
+  );
+  const provinceRows = useMemo(
+    () =>
+      placeCatalog && selectedCountry === "中国"
+        ? countBy(placeCatalog, "province", (hit) => hit.country === "中国")
+        : [],
+    [placeCatalog, selectedCountry]
+  );
+  const cityRows = useMemo(
+    () => (placeCatalog && selectedProvince ? citiesForProvince(placeCatalog, selectedProvince) : []),
+    [placeCatalog, selectedProvince]
+  );
+
+  const journeyTitle = selectedCity
+    ? selectedCity
+    : selectedProvince
+      ? selectedProvince
+      : selectedCountry
+        ? selectedCountry
+        : selectedMonth
+          ? selectedMonth.label
+          : selectedYear
+            ? `${selectedYear}年`
+            : "全部旅程";
+
+  const chipClass =
+    "px-2 py-1 rounded-md text-xs transition-all text-gray-600 dark:text-gray-300 hover:bg-warm-50 dark:hover:bg-gray-800/50";
+
+  const playButtonClass =
+    "touch-manipulation w-full rounded-full bg-forest-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-black/15 transition-colors hover:bg-forest-700 dark:bg-forest-500 dark:hover:bg-forest-600";
 
   const yearPicker = !loading && availableMonths.length > 0 && (
-        <div className="absolute left-3 z-[1000]" style={{ top: "max(0.75rem, env(safe-area-inset-top))" }}>
-          <div className="max-h-[min(42vh,280px)] w-[min(180px,calc(100vw-1.5rem))] overflow-y-auto bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-xl shadow-lg shadow-black/10 border border-warm-200/50 dark:border-gray-700/50 p-3 landscape:max-h-[min(28vh,168px)] landscape:p-2 md:w-[200px]">
-            <div className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2 flex items-center gap-1.5">
-              📅 {selectedYear ? `${selectedYear}年` : "选择年份"}
+        <div className="absolute left-3 z-[1000] flex w-[min(220px,calc(100vw-1.5rem))] flex-col gap-2 md:w-[240px]" style={{ top: "max(0.75rem, env(safe-area-inset-top))" }}>
+          <div className="max-h-[min(48vh,340px)] overflow-y-auto bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-xl shadow-lg shadow-black/10 border border-warm-200/50 dark:border-gray-700/50 p-3 landscape:max-h-[min(34vh,200px)] landscape:p-2">
+            <div className="mb-2 grid grid-cols-2 gap-0.5 rounded-lg bg-warm-50 p-0.5 dark:bg-gray-800">
+              {([
+                ["line", "线路图"],
+                ["scatter", "点阵图"],
+              ] as const).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  onClick={() => applyTrackView(mode)}
+                  className={`rounded-md px-2 py-1 text-[11px] transition-colors ${
+                    trackView === mode
+                      ? "bg-white text-gray-800 shadow-sm dark:bg-gray-700 dark:text-gray-100"
+                      : "text-gray-500 dark:text-gray-400"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
-
-            {!selectedYear && (
-              <div className="flex flex-wrap gap-1.5">
-                {Object.entries(groupedByYear).map(([year]) => {
-                  const color = YEAR_COLORS[year] || "#dda75c";
-                  return (
-                    <button
-                      key={year}
-                      onClick={() => handleYearClick(year)}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs transition-all text-gray-600 dark:text-gray-300 hover:bg-warm-50 dark:hover:bg-gray-800/50"
-                    >
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                      {year}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {selectedYear && !selectedMonth && (
-              <div>
-                <button
-                  onClick={() => {
-                    setSelectedYear(null);
-                    setSelectedMonth(null);
-                    setPlayAll(false);
-                  }}
-                  className="text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 mb-2 flex items-center gap-0.5 transition-colors"
-                >
-                  {"← 返回"}
-                </button>
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {(groupedByYear[selectedYear] || []).map((m) => (
-                    <button
-                      key={m.key}
-                      onClick={() => handleMonthClick(m)}
-                      className="px-2 py-1 rounded-md text-xs transition-all text-gray-600 dark:text-gray-300 hover:bg-warm-50 dark:hover:bg-gray-800/50"
-                    >
-                      {m.month}月
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={handleReset}
-                  className="w-full text-xs text-center py-1.5 rounded-lg bg-warm-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-warm-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  🌍 查看全部轨迹
-                </button>
-              </div>
-            )}
-
-            {selectedYear && selectedMonth && (
-              <div>
-                <button
-                  onClick={() => setSelectedMonth(null)}
-                  className="text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 mb-2 flex items-center gap-0.5 transition-colors"
-                >
-                  {"← 返回月份"}
-                </button>
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {(groupedByYear[selectedYear] || []).map((m) => {
-                    const isActive = selectedMonth.key === m.key;
-                    const color = YEAR_COLORS[selectedYear] || "#dda75c";
-                    return (
-                      <button
-                        key={m.key}
-                        onClick={() => handleMonthClick(m)}
-                        className="px-2 py-1 rounded-md text-xs transition-all"
-                        style={
-                          isActive
-                            ? { backgroundColor: `${color}20`, color, fontWeight: 600, boxShadow: `0 0 8px ${color}30` }
-                            : { color: "#9ca3af" }
+            {placeCatalog && countryRows.length > 0 && (
+              <div className="mb-2 grid grid-cols-2 gap-0.5 rounded-lg bg-warm-50 p-0.5 dark:bg-gray-800">
+                {(["time", "place"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => {
+                      setPickerTab(tab);
+                      if (tab === "place") {
+                        setSelectedYear(null);
+                        setSelectedMonth(null);
+                        const map = mapInstanceRef.current;
+                        const data = rawDataRef.current;
+                        if (map && data.length) {
+                          const filtered = filterRoutePoints(data, placeCatalogRef.current, {
+                            ...currentQuery,
+                            year: null,
+                            month: null,
+                          });
+                          setPlayAll(false);
+                          showOverview(map, filtered.length ? filtered : data);
                         }
-                      >
-                        {m.month}月
-                      </button>
-                    );
-                  })}
-                </div>
-                <button
-                  onClick={handleReset}
-                  className="w-full text-xs text-center py-1.5 rounded-lg bg-warm-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-warm-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  🌍 查看全部轨迹
-                </button>
+                      } else {
+                        setSelectedCountry(null);
+                        setSelectedProvince(null);
+                        setSelectedCity(null);
+                      }
+                    }}
+                    className={`rounded-md px-2 py-1 text-[11px] transition-colors ${
+                      pickerTab === tab
+                        ? "bg-white text-gray-800 shadow-sm dark:bg-gray-700 dark:text-gray-100"
+                        : "text-gray-500 dark:text-gray-400"
+                    }`}
+                  >
+                    {tab === "time" ? "时间" : "地点"}
+                  </button>
+                ))}
               </div>
             )}
 
-            {!selectedYear && (
-              <div className="mt-2 text-[10px] text-center text-gray-400 dark:text-gray-500">
-                先选年份，再选月份
-              </div>
+            {pickerTab === "time" && (
+              <>
+                <div className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2 flex items-center gap-1.5">
+                  📅 {selectedYear ? `${selectedYear}年` : "选择年份"}
+                </div>
+
+                {!selectedYear && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {Object.entries(groupedByYear).map(([year]) => {
+                      const color = YEAR_COLORS[year] || "#dda75c";
+                      return (
+                        <button
+                          key={year}
+                          onClick={() => handleYearClick(year)}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs transition-all text-gray-600 dark:text-gray-300 hover:bg-warm-50 dark:hover:bg-gray-800/50"
+                        >
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                          {year}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {selectedYear && !selectedMonth && (
+                  <div>
+                    <button
+                      onClick={() => {
+                        setSelectedYear(null);
+                        setSelectedMonth(null);
+                        setPlayAll(false);
+                      }}
+                      className="text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 mb-2 flex items-center gap-0.5 transition-colors"
+                    >
+                      {"← 返回"}
+                    </button>
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {(groupedByYear[selectedYear] || []).map((m) => (
+                        <button key={m.key} onClick={() => handleMonthClick(m)} className={chipClass}>
+                          {m.month}月
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={handleReset}
+                      className="w-full text-xs text-center py-1.5 rounded-lg bg-warm-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-warm-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      🌍 查看全部轨迹
+                    </button>
+                  </div>
+                )}
+
+                {selectedYear && selectedMonth && (
+                  <div>
+                    <button
+                      onClick={() => setSelectedMonth(null)}
+                      className="text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 mb-2 flex items-center gap-0.5 transition-colors"
+                    >
+                      {"← 返回月份"}
+                    </button>
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {(groupedByYear[selectedYear] || []).map((m) => {
+                        const isActive = selectedMonth.key === m.key;
+                        const color = YEAR_COLORS[selectedYear] || "#dda75c";
+                        return (
+                          <button
+                            key={m.key}
+                            onClick={() => handleMonthClick(m)}
+                            className="px-2 py-1 rounded-md text-xs transition-all"
+                            style={
+                              isActive
+                                ? { backgroundColor: `${color}20`, color, fontWeight: 600, boxShadow: `0 0 8px ${color}30` }
+                                : { color: "#9ca3af" }
+                            }
+                          >
+                            {m.month}月
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <button
+                      onClick={handleReset}
+                      className="w-full text-xs text-center py-1.5 rounded-lg bg-warm-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-warm-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      🌍 查看全部轨迹
+                    </button>
+                  </div>
+                )}
+
+                {!selectedYear && (
+                  <div className="mt-2 text-[10px] text-center text-gray-400 dark:text-gray-500">
+                    先选年份，再选月份
+                  </div>
+                )}
+              </>
+            )}
+
+            {pickerTab === "place" && placeCatalog && (
+              <>
+                <div className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2 flex items-center gap-1.5">
+                  📍 {selectedCity || selectedProvince || selectedCountry || "选择地点"}
+                </div>
+
+                {!selectedCountry && (
+                  <div className="mb-2 text-center text-[10px] text-gray-400 dark:text-gray-500">
+                    先选国家；中国可再选省 / 市 / 自治州。地点分类只预览路线，不播放。
+                  </div>
+                )}
+
+                {!selectedCountry && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {countryRows.map((row) => (
+                      <button
+                        key={row.name}
+                        onClick={() => handleCountryClick(row.name)}
+                        className="flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs transition-all text-gray-600 dark:text-gray-300 hover:bg-warm-50 dark:hover:bg-gray-800/50"
+                      >
+                        <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: colorForPlace(row.name) }} />
+                        {row.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {selectedCountry && selectedCountry !== "中国" && (
+                  <div>
+                    <button
+                      onClick={() => {
+                        setSelectedCountry(null);
+                        setSelectedProvince(null);
+                        setSelectedCity(null);
+                        setPlayAll(false);
+                      }}
+                      className="mb-2 flex items-center gap-0.5 text-[10px] text-gray-400 transition-colors hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                    >
+                      {"← 返回国家"}
+                    </button>
+                    <button
+                      onClick={handleReset}
+                      className="w-full rounded-lg bg-warm-50 py-1.5 text-center text-xs text-gray-500 transition-colors hover:bg-warm-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                    >
+                      🌍 查看全部轨迹
+                    </button>
+                  </div>
+                )}
+
+                {selectedCountry === "中国" && !selectedProvince && (
+                  <div>
+                    <button
+                      onClick={() => {
+                        setSelectedCountry(null);
+                        setPlayAll(false);
+                      }}
+                      className="mb-2 flex items-center gap-0.5 text-[10px] text-gray-400 transition-colors hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                    >
+                      {"← 返回国家"}
+                    </button>
+                    <div className="mb-2 flex flex-wrap gap-1">
+                      {provinceRows.map((row) => (
+                        <button key={row.name} onClick={() => handleProvinceClick(row.name)} className={chipClass}>
+                          {shortProvince(row.name)}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={handleReset}
+                      className="w-full rounded-lg bg-warm-50 py-1.5 text-center text-xs text-gray-500 transition-colors hover:bg-warm-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                    >
+                      🌍 查看全部轨迹
+                    </button>
+                  </div>
+                )}
+
+                {selectedCountry === "中国" && selectedProvince && (
+                  <div>
+                    <button
+                      onClick={() => {
+                        setSelectedProvince(null);
+                        setSelectedCity(null);
+                      }}
+                      className="mb-2 flex items-center gap-0.5 text-[10px] text-gray-400 transition-colors hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                    >
+                      {"← 返回省份"}
+                    </button>
+                    {cityRows.length > 0 && (
+                      <div className="mb-2 flex flex-wrap gap-1">
+                        {cityRows.map((row) => {
+                          const isActive = selectedCity === row.name;
+                          const color = colorForPlace(selectedProvince);
+                          return (
+                            <button
+                              key={row.name}
+                              onClick={() => handleCityClick(row.name)}
+                              className={isActive ? "rounded-md px-2 py-1 text-xs transition-all" : chipClass}
+                              style={
+                                isActive
+                                  ? { backgroundColor: `${color}20`, color, fontWeight: 600, boxShadow: `0 0 8px ${color}30` }
+                                  : undefined
+                              }
+                            >
+                              {row.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <button
+                      onClick={handleReset}
+                      className="w-full rounded-lg bg-warm-50 py-1.5 text-center text-xs text-gray-500 transition-colors hover:bg-warm-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                    >
+                      🌍 查看全部轨迹
+                    </button>
+                  </div>
+                )}
+
+
+              </>
             )}
           </div>
+          {!preparing && !isPlaceMode && (
+            <div className="flex flex-col gap-2">
+              {animating ? (
+                <>
+                  <button onClick={togglePause} className={playButtonClass}>
+                    {paused ? "继续" : "暂停"}
+                  </button>
+                  <button
+                    onClick={previewTotalRoute}
+                    className="touch-manipulation w-full rounded-full border border-warm-200/80 bg-white/90 px-4 py-2 text-sm font-medium text-gray-700 shadow-lg shadow-black/10 backdrop-blur-md transition-colors hover:bg-warm-50 dark:border-gray-700/80 dark:bg-gray-900/90 dark:text-gray-200 dark:hover:bg-gray-800"
+                  >
+                    预览总路线
+                  </button>
+                  <button
+                    onClick={previewTotalRoute}
+                    className="touch-manipulation w-full rounded-full border border-warm-200/80 bg-white/90 px-4 py-2 text-sm font-medium text-gray-700 shadow-lg shadow-black/10 backdrop-blur-md transition-colors hover:bg-warm-50 dark:border-gray-700/80 dark:bg-gray-900/90 dark:text-gray-200 dark:hover:bg-gray-800"
+                  >
+                    退出播放
+                  </button>
+                </>
+              ) : finished ? (
+                <button onClick={playCurrent} className={playButtonClass}>
+                  重新播放
+                </button>
+              ) : (
+                <button onClick={playCurrent} className={playButtonClass}>
+                  开始播放
+                </button>
+              )}
+            </div>
+          )}
         </div>
   );
 
-  const statusCard = !loading && (selectedYear || selectedMonth || playAll || animating) && stats.points > 0 && (
+  const statusCard = !loading && (selectedYear || selectedMonth || selectedCountry || selectedProvince || selectedCity || playAll || animating) && stats.points > 0 && (
         <div className="absolute right-3 z-[1000]" style={{ top: "max(0.75rem, env(safe-area-inset-top))" }}>
           <div className="max-w-[min(220px,calc(100vw-1.5rem))] bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg shadow-lg shadow-black/10 border border-warm-200/50 dark:border-gray-700/50 px-3 py-2 min-w-[148px]">
             <div className="text-[1.3125rem] font-medium leading-snug text-gray-800 dark:text-gray-200">
-              {journeyDate || `${journeyTitle} 我的轨迹`}
+              {selectedCountry ? journeyTitle : journeyDate || `${journeyTitle} 我的轨迹`}
             </div>
+            {selectedCountry && journeyDate && (
+              <div className="text-xs text-gray-500 dark:text-gray-400">{journeyDate}</div>
+            )}
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               {stats.distance.toLocaleString()} km
-              {animating ? (
-                <button
-                  onClick={togglePause}
-                  className="ml-1.5 inline-block text-forest-500 hover:text-forest-600 dark:text-forest-400 dark:hover:text-forest-300 transition-colors cursor-pointer"
-                >
-                  {paused ? "⏸ 已暂停" : "▸ 旅程中"}
-                </button>
-              ) : (
+              {!isPlaceMode && !animating && (playAll || selectedYear || selectedMonth) && (
                 <button
                   onClick={replayRoute}
                   className="ml-1.5 text-forest-500 hover:text-forest-600 dark:text-forest-400 dark:hover:text-forest-300 underline underline-offset-2 transition-colors"
@@ -911,7 +1435,7 @@ export default function TravelMap({
                   再次回放
                 </button>
               )}
-              {playAll && !selectedYear && (
+              {playAll && !selectedYear && !selectedCountry && (
                 <button
                   onClick={() => setPlayAll(false)}
                   className="ml-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
@@ -930,6 +1454,36 @@ export default function TravelMap({
             )}
             {!fullscreen && speedControl({ withDivider: true })}
           </div>
+        </div>
+  );
+
+  const zoomMap = (delta: 1 | -1) => {
+    const map = mapInstanceRef.current;
+    if (!map || animating || preparing) return;
+    applyZoomLimit(map);
+    if (delta > 0) map.zoomIn();
+    else map.zoomOut();
+  };
+
+  const zoomControls = !loading && !preparing && !animating && (
+        <div className="absolute bottom-3 right-3 z-[1000] flex flex-col overflow-hidden rounded-lg border border-warm-200/50 bg-white/90 shadow-lg shadow-black/10 backdrop-blur-md dark:border-gray-700/50 dark:bg-gray-900/90">
+          <button
+            type="button"
+            onClick={() => zoomMap(1)}
+            className="touch-manipulation px-3 py-2 text-base leading-none text-gray-700 transition-colors hover:bg-warm-50 dark:text-gray-200 dark:hover:bg-gray-800"
+            aria-label="放大"
+          >
+            +
+          </button>
+          <span className="h-px bg-warm-200/70 dark:bg-gray-700/70" />
+          <button
+            type="button"
+            onClick={() => zoomMap(-1)}
+            className="touch-manipulation px-3 py-2 text-base leading-none text-gray-700 transition-colors hover:bg-warm-50 dark:text-gray-200 dark:hover:bg-gray-800"
+            aria-label="缩小"
+          >
+            −
+          </button>
         </div>
   );
 
@@ -955,6 +1509,7 @@ export default function TravelMap({
           <div ref={mapRef} className="absolute inset-0 overflow-hidden" />
           {yearPicker}
           {statusCard}
+          {zoomControls}
           {loadingOverlay}
         </div>
         <div
@@ -987,15 +1542,9 @@ export default function TravelMap({
                 {stats.distance.toLocaleString()} km
               </span>
             )}
-            <button
-              onClick={() => (animating ? togglePause() : playAll || selectedYear || selectedMonth ? replayRoute() : setPlayAll(true))}
-              className="touch-manipulation min-h-11 rounded-full bg-forest-600 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-forest-700 landscape:min-h-9 dark:bg-forest-500 dark:hover:bg-forest-600"
-            >
-              {animating ? (paused ? "▸ 继续" : "⏸ 暂停") : "▸ 播放旅程"}
-            </button>
           </div>
           <div
-            className="mx-auto grid w-full max-w-3xl grid-cols-2 gap-x-3 landscape:mx-0 landscape:max-w-none landscape:flex-1"
+            className={`mx-auto grid w-full max-w-3xl grid-cols-2 gap-x-3 landscape:mx-0 landscape:max-w-none landscape:flex-1 ${isPlaceMode ? "hidden" : ""}`}
             onPointerDown={(e) => e.stopPropagation()}
           >
             <label className="block min-w-0">
@@ -1024,13 +1573,15 @@ export default function TravelMap({
   }
 
   return (
-    <div className={`relative ${className || ""}`}>
+    <div className={className || ""}>
+      <div className="relative">
       <div
         ref={mapRef}
         className="w-full h-[360px] md:h-[480px] rounded-2xl overflow-hidden border border-warm-200/40 dark:border-gray-800/40"
       />
       {yearPicker}
       {statusCard}
+      {zoomControls}
       {!loading && !selectedYear && !selectedMonth && !playAll && !animating && (
         <div className="absolute top-3 right-3 z-[1000]">
           <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg shadow-lg shadow-black/10 border border-warm-200/50 dark:border-gray-700/50 px-3 py-2 w-[160px]">
@@ -1039,6 +1590,7 @@ export default function TravelMap({
         </div>
       )}
       {loadingOverlay}
+      </div>
 
       {!loading && stats.points > 0 && !selectedMonth && !selectedYear && (
         <div className="mt-4 flex flex-wrap items-center justify-center gap-4 md:gap-6 text-sm">

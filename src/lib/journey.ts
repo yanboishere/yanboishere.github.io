@@ -302,8 +302,7 @@ export function trailRanges(currentKm: number, windowKm: number) {
   };
 }
 
-export function durationMsForScope(scope: "all" | "year" | "month" = "all"): number {
-  if (scope === "month") return Math.round(JOURNEY_DURATION_MS / 3);
+export function durationMsForScope(): number {
   return JOURNEY_DURATION_MS;
 }
 
