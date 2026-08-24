@@ -26,6 +26,35 @@ const PLACE_PALETTE = [
 
 const HIDDEN_COUNTRIES = new Set(["美国", "保加利亚"]);
 
+const COUNTRY_EMOJI: Record<string, string> = {
+  中国: "🇨🇳",
+  越南: "🇻🇳",
+  马来西亚: "🇲🇾",
+  新加坡: "🇸🇬",
+  印度尼西亚: "🇮🇩",
+  泰国: "🇹🇭",
+  老挝: "🇱🇦",
+  菲律宾: "🇵🇭",
+  日本: "🇯🇵",
+  柬埔寨: "🇰🇭",
+  阿塞拜疆: "🇦🇿",
+  格鲁吉亚: "🇬🇪",
+  土耳其: "🇹🇷",
+  塞浦路斯: "🇨🇾",
+  埃及: "🇪🇬",
+  阿联酋: "🇦🇪",
+  阿曼: "🇴🇲",
+  韩国: "🇰🇷",
+  哈萨克斯坦: "🇰🇿",
+  乌兹别克斯坦: "🇺🇿",
+  尼泊尔: "🇳🇵",
+};
+
+export function countryLabel(name: string): string {
+  const emoji = COUNTRY_EMOJI[name];
+  return emoji ? `${emoji} ${name}` : name;
+}
+
 export function colorForPlace(name: string): string {
   if (name === "中国") return "#b73716";
   let hash = 0;

@@ -33,6 +33,7 @@ import { drawJourneyFrame, sizePlayCanvas, type TileCache } from "@/lib/journey-
 import {
   citiesForProvince,
   colorForPlace,
+  countryLabel,
   countBy,
   hitAt,
   shortProvince,
@@ -1090,7 +1091,7 @@ export default function TravelMap({
     : selectedProvince
       ? selectedProvince
       : selectedCountry
-        ? selectedCountry
+        ? countryLabel(selectedCountry)
         : selectedMonth
           ? selectedMonth.label
           : selectedYear
@@ -1263,7 +1264,7 @@ export default function TravelMap({
             {pickerTab === "place" && placeCatalog && (
               <>
                 <div className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2 flex items-center gap-1.5">
-                  📍 {selectedCity || selectedProvince || selectedCountry || "选择地点"}
+                  📍 {selectedCity || selectedProvince || (selectedCountry ? countryLabel(selectedCountry) : "选择地点")}
                 </div>
 
                 {!selectedCountry && (
@@ -1280,8 +1281,7 @@ export default function TravelMap({
                         onClick={() => handleCountryClick(row.name)}
                         className="flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs transition-all text-gray-600 dark:text-gray-300 hover:bg-warm-50 dark:hover:bg-gray-800/50"
                       >
-                        <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: colorForPlace(row.name) }} />
-                        {row.name}
+                        {countryLabel(row.name)}
                       </button>
                     ))}
                   </div>
