@@ -10,6 +10,8 @@ import TravelMap from "@/components/TravelMap";
 import Portfolio from "@/components/Portfolio";
 import RecentWriting from "@/components/RecentWriting";
 
+const SHOW_PORTFOLIO = false;
+
 const greetings = [
   "啊！！！你来啦 🎉",
   "relax, 随便逛逛 🧘",
@@ -161,7 +163,7 @@ export default function Home() {
         </FadeIn>
       </section>
 
-      {/* portfolio */}
+      {SHOW_PORTFOLIO && (
       <section className="container max-w-4xl mx-auto px-4 py-16">
         <FadeIn>
           <div className="flex items-center justify-between mb-10">
@@ -174,6 +176,7 @@ export default function Home() {
           <Portfolio />
         </FadeIn>
       </section>
+      )}
 
       {/* currently / now 摘要 */}
       <section className="container max-w-4xl mx-auto px-4 py-16">
