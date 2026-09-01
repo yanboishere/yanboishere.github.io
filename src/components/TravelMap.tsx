@@ -1452,7 +1452,7 @@ export default function TravelMap({
                 />
               </div>
             )}
-            {!fullscreen && speedControl({ withDivider: true })}
+            {!fullscreen && !isPlaceMode && speedControl({ withDivider: true })}
           </div>
         </div>
   );
@@ -1582,7 +1582,7 @@ export default function TravelMap({
       {yearPicker}
       {statusCard}
       {zoomControls}
-      {!loading && !selectedYear && !selectedMonth && !playAll && !animating && (
+      {!loading && !selectedYear && !selectedMonth && !selectedCountry && !playAll && !animating && (
         <div className="absolute top-3 right-3 z-[1000]">
           <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg shadow-lg shadow-black/10 border border-warm-200/50 dark:border-gray-700/50 px-3 py-2 w-[160px]">
             {speedControl()}
