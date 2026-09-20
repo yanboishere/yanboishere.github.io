@@ -22,14 +22,22 @@ import {
   pathBetweenDistances,
   positionAtDistance,
   stabilizeTileZoom,
-  tileKey,
   trailRanges,
   trailWindowKm,
   type JourneyRoute,
-  type TileCoord,
   type WorldCamera,
 } from "@/lib/journey";
 import { drawJourneyFrame, sizePlayCanvas, type TileCache } from "@/lib/journey-canvas";
+import {
+  connectionAllowsPrefetch,
+  DARK_TILE_URL,
+  journeyTilesForSizes,
+  LIGHT_TILE_URL,
+  loadJourneyTiles,
+  MAP_ATTRIBUTION,
+  PREFETCH_MAX_ZOOM,
+  splitJourneyTiles,
+} from "@/lib/tile-prefetch";
 import {
   citiesForProvince,
   colorForPlace,
@@ -41,8 +49,6 @@ import {
 } from "@/lib/travel-places";
 import { filterDotIndices, mountDotCanvas, parseTravelDots, type PackedDots } from "@/lib/travel-dots";
 
-const TILE_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
-const DARK_TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
 const JOURNEY_COLOR = "#ec6322";
 const SPEED_MIN = 0.1;
 const SPEED_MAX = 10;
@@ -217,21 +223,6 @@ function setMapIdle(map: L.Map, idle: boolean) {
   }
 }
 
-function retinaSuffix(): string {
-  return L.Browser.retina ? "@2x" : "";
-}
-
-function tileUrl(tile: TileCoord, dark: boolean): string {
-  const template = dark ? DARK_TILE_URL : TILE_URL;
-  const s = "abcd"[Math.abs(tile.x + tile.y) % 4];
-  return template
-    .replace("{s}", s)
-    .replace("{z}", String(tile.z))
-    .replace("{x}", String(tile.x))
-    .replace("{y}", String(tile.y))
-    .replace("{r}", retinaSuffix());
-}
-
 type SmoothTileLayer = L.TileLayer & {
   _smoothCameraPatched?: boolean;
   _tileZoom?: number;
@@ -241,9 +232,9 @@ type SmoothTileLayer = L.TileLayer & {
 };
 
 function createBasemap(dark: boolean): L.TileLayer {
-  const layer = L.tileLayer(dark ? DARK_TILE_URL : TILE_URL, {
-    subdomains: "abcd",
+  const layer = L.tileLayer(dark ? DARK_TILE_URL : LIGHT_TILE_URL, {
     maxZoom: 19,
+    maxNativeZoom: dark ? 16 : 19,
     keepBuffer: 12,
     updateWhenZooming: false,
     updateWhenIdle: true,
@@ -267,61 +258,6 @@ function createBasemap(dark: boolean): L.TileLayer {
   return layer;
 }
 
-function preloadTiles(
-  tiles: TileCoord[],
-  dark: boolean,
-  onProgress: (loaded: number, total: number) => void,
-  signal: AbortSignal
-): Promise<TileCache> {
-  const unique = new Map<string, TileCoord>();
-  for (const tile of tiles) unique.set(tileKey(tile.z, tile.x, tile.y), tile);
-  const list = [...unique.values()];
-  const cache: TileCache = new Map();
-  if (list.length === 0) return Promise.resolve(cache);
-
-  return new Promise((resolve) => {
-    let nextIndex = 0;
-    let finished = 0;
-    let active = 0;
-    const concurrency = 8;
-    const total = list.length;
-
-    const tick = () => {
-      if (signal.aborted) {
-        resolve(cache);
-        return;
-      }
-      if (finished >= total) {
-        resolve(cache);
-        return;
-      }
-      while (active < concurrency && nextIndex < total) {
-        const tile = list[nextIndex++];
-        const key = tileKey(tile.z, tile.x, tile.y);
-        active += 1;
-        const img = new Image();
-        let settled = false;
-        const done = (ok: boolean) => {
-          if (settled) return;
-          settled = true;
-          window.clearTimeout(timer);
-          if (ok && img.complete && img.naturalWidth > 0) cache.set(key, img);
-          active -= 1;
-          finished += 1;
-          onProgress(finished, total);
-          tick();
-        };
-        const timer = window.setTimeout(() => done(false), 8000);
-        img.onload = () => done(true);
-        img.onerror = () => done(false);
-        img.src = tileUrl(tile, dark);
-      }
-    };
-
-    tick();
-  });
-}
-
 interface TravelMapProps {
   className?: string;
   variant?: "embedded" | "fullscreen";
@@ -333,7 +269,7 @@ interface TravelMapProps {
 export default function TravelMap({
   className,
   variant = "embedded",
-  autoPlay: _autoPlay = false,
+  autoPlay = false,
   onPlayAll,
   onExit,
 }: TravelMapProps) {
@@ -359,6 +295,9 @@ export default function TravelMap({
   const playbackSpeedRef = useRef(DEFAULT_SPEED);
   const [preparing, setPreparing] = useState(false);
   const [prepareProgress, setPrepareProgress] = useState({ loaded: 0, total: 0 });
+  const [prefetch, setPrefetch] = useState<{ loaded: number; total: number } | null>(null);
+  const autoPlayRef = useRef(autoPlay);
+  const autoPlayedRef = useRef(false);
 
   const pausedRef = useRef(false);
   const preloadAbortRef = useRef<AbortController | null>(null);
@@ -710,18 +649,23 @@ export default function TravelMap({
       const abort = new AbortController();
       preloadAbortRef.current = abort;
       const tiles = collectJourneyTiles(track, overview, size.x, size.y);
-      setPrepareProgress({ loaded: 0, total: tiles.length });
+      // Only wait for the base zooms plus the start of the track; the detail
+      // tiles stream in during playback and the canvas upgrades to them from
+      // their lower-zoom ancestors as they arrive.
+      const { blocking, streaming } = splitJourneyTiles(tiles);
+      setPrepareProgress({ loaded: 0, total: blocking.length });
 
-      void preloadTiles(
-        tiles,
-        isDarkRef.current,
-        (loaded, total) => {
+      void loadJourneyTiles(blocking, isDarkRef.current, {
+        signal: abort.signal,
+        onProgress: (loaded, total) => {
           if (!abort.signal.aborted) setPrepareProgress({ loaded, total });
         },
-        abort.signal
-      ).then((cache) => {
+      }).then((cache) => {
         if (abort.signal.aborted || mapInstanceRef.current !== map) return;
         tileCache = cache;
+        if (streaming.length > 0) {
+          void loadJourneyTiles(streaming, isDarkRef.current, { signal: abort.signal });
+        }
         const panes = map.getPanes();
         if (panes.tilePane) panes.tilePane.style.visibility = "hidden";
         if (panes.overlayPane) panes.overlayPane.style.visibility = "hidden";
@@ -823,6 +767,9 @@ export default function TravelMap({
   useEffect(() => {
     if (!mapRef.current) return;
     let alive = true;
+    let autoPlayTimer = 0;
+    let prefetchTimer = 0;
+    const prefetchAbort = new AbortController();
     const container = mapRef.current;
 
     const isDark = document.documentElement.classList.contains("dark");
@@ -856,7 +803,7 @@ export default function TravelMap({
       maxWidth: 140,
     }).addTo(map);
     map.attributionControl.setPrefix(false);
-    map.attributionControl.addAttribution('© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>');
+    map.attributionControl.addAttribution(MAP_ATTRIBUTION);
 
     const tileLayer = createBasemap(isDark).addTo(map);
     tileLayerRef.current = tileLayer;
@@ -899,6 +846,41 @@ export default function TravelMap({
 
         showOverview(map, data);
         setLoading(false);
+
+        if (autoPlayRef.current && !autoPlayedRef.current) {
+          // Theater entry: start the journey right away; the preparing overlay
+          // doubles as the entry progress bar and finishes instantly when the
+          // home page already prefetched the tiles.
+          autoPlayedRef.current = true;
+          autoPlayTimer = window.setTimeout(() => {
+            if (!alive || mapInstanceRef.current !== map) return;
+            map.invalidateSize();
+            setPlayAll(true);
+            startJourney(map, data, {});
+          }, 350);
+        } else if (!fullscreen) {
+          // Warm the journey tiles in the background as soon as a visitor
+          // lands, for both this embedded size and the fullscreen theater, so
+          // pressing play later starts without a loading wait.
+          prefetchTimer = window.setTimeout(() => {
+            if (!alive || !connectionAllowsPrefetch()) return;
+            const route = buildRoute(data);
+            if (!route) return;
+            const size = map.getSize();
+            const tiles = journeyTilesForSizes(route, [
+              [size.x, size.y],
+              [window.innerWidth, window.innerHeight],
+            ]).filter((tile) => tile.z <= PREFETCH_MAX_ZOOM);
+            if (tiles.length === 0) return;
+            void loadJourneyTiles(tiles, isDarkRef.current, {
+              concurrency: 5,
+              signal: prefetchAbort.signal,
+              onProgress: (loaded, total) => {
+                if (alive) setPrefetch({ loaded, total });
+              },
+            });
+          }, 900);
+        }
       })
       .catch((err) => {
         if (!alive) return;
@@ -913,6 +895,9 @@ export default function TravelMap({
 
     return () => {
       alive = false;
+      window.clearTimeout(autoPlayTimer);
+      window.clearTimeout(prefetchTimer);
+      prefetchAbort.abort();
       window.removeEventListener("resize", syncSize);
       document.removeEventListener("fullscreenchange", syncSize);
       document.removeEventListener("webkitfullscreenchange", syncSize);
@@ -921,7 +906,7 @@ export default function TravelMap({
       mapInstanceRef.current = null;
       tileLayerRef.current = null;
     };
-  }, [showOverview, fullscreen]);
+  }, [showOverview, fullscreen, startJourney]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -1487,6 +1472,27 @@ export default function TravelMap({
         </div>
   );
 
+  const prefetchPct =
+    prefetch && prefetch.total > 0 ? Math.round((prefetch.loaded / prefetch.total) * 100) : 0;
+  const prefetchBar = !fullscreen &&
+    !loading &&
+    !preparing &&
+    !animating &&
+    prefetch &&
+    prefetch.loaded < prefetch.total && (
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1050] overflow-hidden rounded-b-2xl">
+        <div className="mx-auto mb-1.5 w-fit rounded-full bg-white/85 px-2.5 py-0.5 text-[10px] text-gray-500 shadow-sm backdrop-blur-sm dark:bg-gray-900/85 dark:text-gray-400">
+          地图预加载 {prefetchPct}%
+        </div>
+        <div className="h-[3px] w-full bg-warm-100/70 dark:bg-gray-800/70">
+          <div
+            className="h-full bg-sunset-500 transition-[width] duration-300"
+            style={{ width: `${prefetchPct}%` }}
+          />
+        </div>
+      </div>
+    );
+
   const loadingOverlay = (loading || preparing) && (
         <div className={`absolute inset-0 flex items-center justify-center bg-warm-50/80 dark:bg-gray-900/80 ${fullscreen ? "" : "rounded-2xl"} pointer-events-none z-[1100]`}>
           <PageLoading
@@ -1589,6 +1595,7 @@ export default function TravelMap({
           </div>
         </div>
       )}
+      {prefetchBar}
       {loadingOverlay}
       </div>
 
