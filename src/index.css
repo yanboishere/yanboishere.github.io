@@ -80,7 +80,7 @@
   }
 
   .hand-btn {
-    @apply relative px-6 py-3 font-hand text-lg transition-all duration-300;
+    @apply relative px-6 py-3 font-hand text-lg transition-[transform,box-shadow,background-color,color] duration-200;
     border: 2px solid currentColor;
     border-radius: 2px 12px 2px 12px;
     transform: rotate(-1deg);

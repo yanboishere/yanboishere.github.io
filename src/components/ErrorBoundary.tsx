@@ -32,7 +32,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             <h1 className="font-display text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
               页面出错了
             </h1>
-            <pre className="text-left text-sm bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 overflow-auto text-red-700 dark:text-red-300 mb-4">
+            <pre className="text-left text-sm bg-warm-50 dark:bg-gray-900 border border-warm-200 dark:border-gray-800 rounded-lg p-4 overflow-auto text-gray-700 dark:text-gray-300 mb-4">
               {this.state.error?.message}
               {"\n\n"}
               {this.state.error?.stack}

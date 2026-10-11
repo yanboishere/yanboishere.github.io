@@ -76,7 +76,7 @@ export default function About() {
 
           {/* fun facts */}
           <FadeIn delay={0.25}>
-            <div className="mt-16 p-6 md:p-8 rounded-2xl bg-gradient-to-br from-warm-50 to-forest-50/30 dark:from-gray-900 dark:to-gray-900/50 border border-warm-200/40 dark:border-gray-800/40">
+            <div className="mt-16 p-6 md:p-8 rounded-2xl bg-warm-50/70 dark:bg-gray-900/60 border border-warm-200/50 dark:border-gray-800/50">
               <h2 className="font-hand text-xl text-coffee dark:text-warm-300 mb-4">一些 random facts 🎲</h2>
               <ul className="space-y-2 text-gray-700 dark:text-gray-300 text-sm">
               </ul>

@@ -34,7 +34,7 @@ export default function Friends() {
                   href={friend.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center justify-between p-5 rounded-2xl bg-white/60 dark:bg-gray-900/60 border border-warm-200/40 dark:border-gray-800/40 hover:border-warm-300/60 dark:hover:border-gray-700/60 hover:shadow-lg hover:shadow-warm-200/20 dark:hover:shadow-gray-900/20 transition-all duration-300"
+                  className="group flex items-center justify-between p-5 rounded-2xl bg-white/60 dark:bg-gray-900/60 border border-warm-200/40 dark:border-gray-800/40 hover:border-warm-300/70 dark:hover:border-gray-700/70 transition-colors duration-150"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-full bg-forest-100 dark:bg-forest-900/30 flex items-center justify-center text-forest-600 dark:text-forest-400 font-display font-bold text-sm">

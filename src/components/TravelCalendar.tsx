@@ -239,7 +239,7 @@ export default function TravelCalendar() {
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: (Number(day.date.split("-")[2]) - 1) * 0.015, duration: 0.2 }}
-                  className="aspect-square rounded-sm cursor-pointer transition-all duration-150 hover:ring-2 hover:ring-forest-400 dark:hover:ring-forest-500 hover:ring-offset-1 dark:hover:ring-offset-gray-900 relative group"
+                  className="aspect-square rounded-sm cursor-pointer transition-shadow duration-150 hover:ring-2 hover:ring-forest-400 dark:hover:ring-forest-500 hover:ring-offset-1 dark:hover:ring-offset-gray-900 relative group"
                   style={{
                     backgroundColor: level > 0 ? LEVEL_COLORS_INLINE[level] : undefined,
                     opacity: level > 0 ? 1 : undefined,

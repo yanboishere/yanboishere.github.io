@@ -76,7 +76,7 @@ export default function Navbar() {
                     onClick={() => {
                       if (item.path === "/footprints") void requestAppFullscreen();
                     }}
-                    className={`relative whitespace-nowrap px-2 lg:px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-warm-100 dark:hover:bg-gray-800 ${
+                    className={`relative whitespace-nowrap px-2 lg:px-3 py-2 text-sm rounded-lg transition-colors duration-150 hover:bg-warm-100 dark:hover:bg-gray-800 ${
                       isActive ? "text-forest-700 dark:text-forest-400 font-medium" : "text-gray-600 dark:text-gray-400"
                     }`}
                   >

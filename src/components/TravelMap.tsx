@@ -1084,7 +1084,7 @@ export default function TravelMap({
             : "全部旅程";
 
   const chipClass =
-    "px-2 py-1 rounded-md text-xs transition-all text-gray-600 dark:text-gray-300 hover:bg-warm-50 dark:hover:bg-gray-800/50";
+    "px-2 py-1 rounded-md text-xs transition-colors duration-150 text-gray-600 dark:text-gray-300 hover:bg-warm-50 dark:hover:bg-gray-800/50";
 
   const playButtonClass =
     "touch-manipulation w-full rounded-full bg-forest-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-black/15 transition-colors hover:bg-forest-700 dark:bg-forest-500 dark:hover:bg-forest-600";
@@ -1163,7 +1163,7 @@ export default function TravelMap({
                         <button
                           key={year}
                           onClick={() => handleYearClick(year)}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs transition-all text-gray-600 dark:text-gray-300 hover:bg-warm-50 dark:hover:bg-gray-800/50"
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs transition-colors duration-150 text-gray-600 dark:text-gray-300 hover:bg-warm-50 dark:hover:bg-gray-800/50"
                         >
                           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
                           {year}
@@ -1217,7 +1217,7 @@ export default function TravelMap({
                           <button
                             key={m.key}
                             onClick={() => handleMonthClick(m)}
-                            className="px-2 py-1 rounded-md text-xs transition-all"
+                            className="px-2 py-1 rounded-md text-xs transition-colors duration-150"
                             style={
                               isActive
                                 ? { backgroundColor: `${color}20`, color, fontWeight: 600, boxShadow: `0 0 8px ${color}30` }
@@ -1264,7 +1264,7 @@ export default function TravelMap({
                       <button
                         key={row.name}
                         onClick={() => handleCountryClick(row.name)}
-                        className="flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs transition-all text-gray-600 dark:text-gray-300 hover:bg-warm-50 dark:hover:bg-gray-800/50"
+                        className="flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs transition-colors duration-150 text-gray-600 dark:text-gray-300 hover:bg-warm-50 dark:hover:bg-gray-800/50"
                       >
                         {countryLabel(row.name)}
                       </button>
@@ -1341,7 +1341,7 @@ export default function TravelMap({
                             <button
                               key={row.name}
                               onClick={() => handleCityClick(row.name)}
-                              className={isActive ? "rounded-md px-2 py-1 text-xs transition-all" : chipClass}
+                              className={isActive ? "rounded-md px-2 py-1 text-xs transition-colors duration-150" : chipClass}
                               style={
                                 isActive
                                   ? { backgroundColor: `${color}20`, color, fontWeight: 600, boxShadow: `0 0 8px ${color}30` }

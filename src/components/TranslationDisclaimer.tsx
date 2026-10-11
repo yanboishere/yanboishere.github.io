@@ -24,7 +24,7 @@ export default function TranslationDisclaimer({ open, langLabel, onConfirm, onCa
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.92, opacity: 0 }}
             transition={{ type: "spring", damping: 25 }}
-            className="bg-white dark:bg-gray-900 rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl"
+            className="bg-white dark:bg-gray-900 rounded-2xl p-6 md:p-8 max-w-md w-full shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between mb-4">

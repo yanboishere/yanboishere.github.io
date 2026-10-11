@@ -36,9 +36,6 @@ export default function RecentWriting({ posts, limit = 5 }: RecentWritingProps) 
     <section>
       <div className="mb-10 flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs tracking-[0.2em] uppercase text-gray-400 dark:text-gray-500 mb-2">
-            Recent Writing
-          </p>
           <h2 className="font-display text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
             近期笔墨
           </h2>
@@ -48,7 +45,6 @@ export default function RecentWriting({ posts, limit = 5 }: RecentWritingProps) 
 
       <div className="space-y-0">
         {items.map((post, index) => {
-          const num = String(index + 1).padStart(2, "0");
           const relativeTime = formatRelativeTime(post.date);
           const isFirst = index === 0;
           const category = getCategoryLabel(post);
@@ -57,19 +53,14 @@ export default function RecentWriting({ posts, limit = 5 }: RecentWritingProps) 
             <Link
               key={post.slug}
               to={`/blog/${post.slug}`}
-              className="group grid grid-cols-[3rem_1fr] md:grid-cols-[4rem_1fr] gap-x-4 md:gap-x-6 py-6 border-b border-gray-200/60 dark:border-gray-800/60 last:border-b-0"
+              className="group block py-6 border-b border-gray-200/60 dark:border-gray-800/60 last:border-b-0"
             >
-              <div className="pt-1">
-                <span className="text-sm text-gray-400 dark:text-gray-500 font-mono tabular-nums">
-                  {num}
-                </span>
-              </div>
 
               <div
                 className={cn(
                   "relative pl-5 border-l-2 transition-colors",
                   isFirst
-                    ? "border-rose-400 dark:border-rose-400"
+                    ? "border-forest-500 dark:border-forest-400"
                     : "border-gray-200 dark:border-gray-700 group-hover:border-gray-300 dark:group-hover:border-gray-600"
                 )}
               >

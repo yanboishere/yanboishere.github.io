@@ -57,13 +57,13 @@ export default function BlogList() {
                   placeholder="搜搜看..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/60 dark:bg-gray-900/60 border border-warm-200/40 dark:border-gray-800/40 focus:border-forest-400 dark:focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-400/20 transition-all"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/60 dark:bg-gray-900/60 border border-warm-200/40 dark:border-gray-800/40 focus:border-forest-400 dark:focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-400/20 transition-[border-color,box-shadow] duration-150"
                 />
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setSelectedTag(null)}
-                  className={`text-sm px-3 py-1.5 rounded-full transition-all ${
+                  className={`text-sm px-3 py-1.5 rounded-full transition-colors duration-150 ${
                     !selectedTag
                       ? "bg-forest-600 text-white dark:bg-forest-500"
                       : "bg-warm-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-warm-200 dark:hover:bg-gray-700"
@@ -75,7 +75,7 @@ export default function BlogList() {
                   <button
                     key={tag}
                     onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
-                    className={`text-sm px-3 py-1.5 rounded-full transition-all ${
+                    className={`text-sm px-3 py-1.5 rounded-full transition-colors duration-150 ${
                       selectedTag === tag
                         ? "bg-forest-600 text-white dark:bg-forest-500"
                         : "bg-warm-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-warm-200 dark:hover:bg-gray-700"
@@ -93,7 +93,7 @@ export default function BlogList() {
               <FadeIn key={post.slug} delay={0.05 * i}>
                 <Link
                   to={`/blog/${post.slug}`}
-                  className="group block p-6 md:p-8 rounded-2xl bg-white/60 dark:bg-gray-900/60 border border-warm-200/40 dark:border-gray-800/40 hover:border-warm-300/60 dark:hover:border-gray-700/60 hover:shadow-lg hover:shadow-warm-200/20 dark:hover:shadow-gray-900/20 transition-all duration-300"
+                  className="group block p-6 md:p-8 rounded-2xl bg-white/60 dark:bg-gray-900/60 border border-warm-200/40 dark:border-gray-800/40 hover:border-warm-300/70 dark:hover:border-gray-700/70 transition-colors duration-150"
                 >
                   <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-500 mb-3">
                     <span>{post.date}</span>

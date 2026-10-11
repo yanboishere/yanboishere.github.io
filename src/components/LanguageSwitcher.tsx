@@ -105,7 +105,7 @@ export default function LanguageSwitcher({ onNeedDisclaimer }: { onNeedDisclaime
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 mt-2 w-48 max-h-80 overflow-y-auto rounded-xl bg-white dark:bg-gray-900 border border-warm-200/60 dark:border-gray-700/60 shadow-xl shadow-black/10 dark:shadow-black/30 z-[60] py-1"
+            className="absolute right-0 mt-2 w-48 max-h-80 overflow-y-auto rounded-xl bg-white dark:bg-gray-900 border border-warm-200/60 dark:border-gray-700/60 shadow-md shadow-black/5 dark:shadow-black/30 z-[60] py-1"
           >
             {LANGUAGES.map((lang) => (
               <button

@@ -48,7 +48,6 @@ export default function Home() {
     <div className="min-h-screen">
       {/* hero section — 我想要这个区域很大气但又很 relax */}
       <section className="relative pt-16 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-warm-100/60 via-cream to-cream dark:from-gray-900/60 dark:via-gray-950 dark:to-gray-950" />
         <div className="absolute inset-0 opacity-20 dark:opacity-10">
           <img
             src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&q=80"
@@ -181,7 +180,7 @@ export default function Home() {
       {/* currently / now 摘要 */}
       <section className="container max-w-4xl mx-auto px-4 py-16">
         <FadeIn>
-          <div className="relative p-8 md:p-12 rounded-3xl bg-gradient-to-br from-warm-50 to-warm-100/50 dark:from-gray-900 dark:to-gray-900/50 border border-warm-200/40 dark:border-gray-800/40">
+          <div className="relative p-8 md:p-12 rounded-2xl bg-warm-50/70 dark:bg-gray-900/60 border border-warm-200/50 dark:border-gray-800/50">
             <div className="absolute top-4 right-6">
               <span className="font-hand text-lg text-warm-400">📍 Right now...</span>
             </div>

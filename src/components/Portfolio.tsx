@@ -275,7 +275,7 @@ export default function Portfolio() {
               transition={{ delay: idx * 0.05 + 0.2 }}
               onMouseEnter={() => setHoveredIdx(idx)}
               onMouseLeave={() => setHoveredIdx(null)}
-              className={`bg-white dark:bg-gray-800/50 border rounded-xl p-3.5 transition-all duration-200 ${
+              className={`bg-white dark:bg-gray-800/50 border rounded-xl p-3.5 transition-colors duration-150 ${
                 hoveredIdx === idx
                   ? "border-forest-400 dark:border-forest-500 shadow-sm"
                   : "border-gray-200 dark:border-gray-700"
