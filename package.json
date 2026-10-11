@@ -8,7 +8,8 @@
     "build": "node scripts/build-blog.mjs && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "check": "tsc -b --noEmit"
+    "check": "tsc -b --noEmit",
+    "travel:update": "python3 scripts/update-travel.py"
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",

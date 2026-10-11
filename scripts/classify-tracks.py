@@ -123,7 +123,8 @@ COUNTRY_ALIAS = {
     "北塞浦路斯土耳其共和国": "塞浦路斯",
 }
 
-HIDDEN_COUNTRIES = {"美国", "保加利亚"}
+# Countries only flown over or passed through in transit; they are not counted as visited.
+HIDDEN_COUNTRIES = {"美国", "保加利亚", "印度", "孟加拉国", "缅甸"}
 
 def feature_area(feat: dict) -> float:
     b = feat["bbox"]

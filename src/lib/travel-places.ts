@@ -24,7 +24,8 @@ const PLACE_PALETTE = [
   "#90be6d",
 ];
 
-const HIDDEN_COUNTRIES = new Set(["美国", "保加利亚"]);
+// Flown over or passed through in transit — keep in sync with scripts/classify-tracks.py.
+const HIDDEN_COUNTRIES = new Set(["美国", "保加利亚", "印度", "孟加拉国", "缅甸"]);
 
 const COUNTRY_EMOJI: Record<string, string> = {
   中国: "🇨🇳",

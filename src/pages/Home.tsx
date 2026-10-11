@@ -9,6 +9,8 @@ import PageTransition from "@/components/PageTransition";
 import TravelMap from "@/components/TravelMap";
 import Portfolio from "@/components/Portfolio";
 import RecentWriting from "@/components/RecentWriting";
+import { nowData } from "@/data/now";
+import { travelStats } from "@/data/travelStats";
 
 const SHOW_PORTFOLIO = false;
 
@@ -147,7 +149,7 @@ export default function Home() {
             </Link>
           </div>
           <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 -mt-4">
-            来自 406,550 个 GPS 数据点的真实轨迹。走过 20 个国家，每一条线都是一段故事。
+            来自 {travelStats.gpsPoints.toLocaleString("en-US")} 个 GPS 数据点的真实轨迹。走过 20 个国家，每一条线都是一段故事。
             <br />
             点「播放旅程」或顶栏「足迹」，会进入全屏回放。为保护隐私，部分数据做了偏移。
           </p>
@@ -191,8 +193,8 @@ export default function Home() {
               <div className="flex items-start gap-3">
                 <span className="text-xl mt-0.5">📍</span>
                 <div>
-                  <p className="font-medium">🇳🇵加德满都，尼泊尔</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">在尼泊尔旅居，学雅思，健身</p>
+                  <p className="font-medium">{nowData.location}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500">{nowData.locationNote}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
