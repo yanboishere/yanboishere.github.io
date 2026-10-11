@@ -10,6 +10,7 @@ import { requestAppFullscreen } from "@/lib/fullscreen";
 const navItems = [
   { path: "/", label: "首页", emoji: "🎒" },
   { path: "/blog", label: "博客", emoji: "✍️" },
+  { path: "/works", label: "作品", emoji: "🧰" },
   { path: "/footprints", label: "足迹", emoji: "🗺️" },
   { path: "/photos", label: "照片", emoji: "📷" },
   { path: "/about", label: "关于", emoji: "🫠" },
@@ -59,7 +60,7 @@ export default function Navbar() {
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-cream/80 dark:bg-gray-950/80 border-b border-warm-200/50 dark:border-gray-800/50">
         <div className="container max-w-4xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity" translate="no">
+            <Link to="/" className="flex shrink-0 items-center gap-2 hover:opacity-80 transition-opacity" translate="no">
               <img src="/logo.png" alt="烟波" className="w-8 h-8 rounded-full object-cover" />
               <span className="font-hand text-2xl text-coffee dark:text-warm-300" translate="no">烟波</span>
             </Link>
@@ -75,11 +76,11 @@ export default function Navbar() {
                     onClick={() => {
                       if (item.path === "/footprints") void requestAppFullscreen();
                     }}
-                    className={`relative px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-warm-100 dark:hover:bg-gray-800 ${
+                    className={`relative whitespace-nowrap px-2 lg:px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-warm-100 dark:hover:bg-gray-800 ${
                       isActive ? "text-forest-700 dark:text-forest-400 font-medium" : "text-gray-600 dark:text-gray-400"
                     }`}
                   >
-                    <span className="mr-1">{item.emoji}</span>
+                    <span className="mr-1 hidden lg:inline">{item.emoji}</span>
                     {item.label}
                     {isActive && (
                       <motion.div

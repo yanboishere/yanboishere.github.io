@@ -56,6 +56,7 @@ export default {
         body: ['"LXGW WenKai"', '"PingFang SC"', '"Microsoft YaHei"', '"Noto Sans SC"', "system-ui", "sans-serif"],
         mono: ['"LXGW WenKai Mono"', "monospace"],
         smiley: ['"Smiley Sans"', '"LXGW WenKai"', "sans-serif"],
+        digits: ['"Yanbo Digits"', '"LXGW WenKai"', '"PingFang SC"', "sans-serif"],
       },
       animation: {
         "fade-in": "fadeIn 0.6s ease-out forwards",

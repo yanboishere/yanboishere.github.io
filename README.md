@@ -15,6 +15,7 @@ Drop out · Digital Nomad · Writer · Photographer
 | `/` | 首页：问候、旅行地图、近期笔墨、持仓 |
 | `/blog` | 文章列表 |
 | `/blog/:slug` | 文章正文 |
+| `/works` | 作品：产品、翻译和教程、黑客松作品、开源贡献 |
 | `/photos` | 照片墙 |
 | `/about` | 关于我 |
 | `/now` | 现在在哪、在做什么 |

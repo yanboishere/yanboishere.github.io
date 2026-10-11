@@ -10,6 +10,16 @@
   src: url("/fonts/smiley-sans.woff2") format("woff2");
 }
 
+/* 得意黑里只取了数字和「, . 万」的子集，按 OFL 要求改了名，协议见 /fonts/yanbo-digits-OFL.txt */
+@font-face {
+  font-family: "Yanbo Digits";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/yanbo-digits.woff2") format("woff2");
+  unicode-range: U+0020, U+002C, U+002E, U+0030-0039, U+4E07;
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;

@@ -1,0 +1,17 @@
+// 由 GitHub 贡献图和公开提交记录生成，统计到 2026-10-11。
+// contributionWeeks[i]：从 contributionStart 起第 i 周（周一开始）的贡献数。
+// weekTopRepo[i]：那一周公开提交最多的仓库在 topRepoNames 里的下标；
+//   -1 表示没找到公开提交，-2 表示提交最多的仓库没有放进这一页。
+
+export const contributionStart = "2021-10-11";
+export const contributionAsOf = "2026-10-11";
+export const contributionTotal = 4913;
+
+// 每年的贡献总数（2026 年只算到 10 月 11 日）
+export const contributionYears: { year: number; total: number }[] = [{"year":2022,"total":688},{"year":2023,"total":2956},{"year":2024,"total":590},{"year":2025,"total":459},{"year":2026,"total":220}];
+
+export const contributionWeeks: number[] = [0,0,0,0,0,0,0,0,0,0,0,0,9,0,2,0,0,0,1,0,0,0,0,0,0,0,0,7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,2,0,0,0,0,44,22,0,4,53,27,33,23,89,31,167,109,58,49,140,21,32,36,126,118,233,40,50,190,180,39,255,14,61,59,0,39,7,56,7,128,85,53,212,71,7,20,2,16,0,11,86,10,2,0,2,0,25,66,110,53,41,22,0,1,30,6,41,101,3,0,0,0,0,0,0,2,12,2,8,1,15,3,12,3,8,29,9,32,44,5,4,16,34,15,68,16,15,43,0,0,0,4,33,14,3,5,0,0,6,1,15,8,16,5,0,20,2,25,23,9,4,1,22,10,7,55,90,33,22,6,10,1,2,1,0,1,0,2,2,4,10,1,0,5,30,1,3,1,0,0,1,0,0,2,5,0,0,6,1,0,2,3,1,30,32,8,4,4,0,4,3,23,11,7,20,8,4,7,1,1,0,0,0,0,0,0,0,0,0,0,2,20,9,0,3,0,0,2,2,10,15,0,0,0,1,8,6,23,16,7,10,11,15,12];
+
+export const topRepoNames: string[] = ["CPP_Primer_Study_Diary","GitHub 主页的 README","OI-wiki/OI-wiki","Web-learning","Go-learning","Solidity-Learning","Web3-Club/Blockchain-Developer-roadmap_Chinese","Web3-Club/Web3wiki-Website","Web3-Club/.github","Web3-Club/vyper-by-example_Chinese","Web3-Club/Solidity-by-example_Chinese","Web3-Club/Web3-Interactive-Learning","JiLin-Universities-Blockchain-Alliance/Intro.","Web3-Club/Cairo-Book_Chinese","WorkWorkLabs/Web3-Recruitment-Platform","Web3-Club/NFT","Trade.with-SuperTrend.parameter","Chain.Food","Web3-Club/anti-Web3-scam","PinTravel","Web3-Club/Ethernaut-Solution","Web3-Club/Hello_TON","Web3-Club/PoS-Planet","Web3-Club/Circle-HMAC-SHA256","Web3-Club/Hello-Web3","Web3-Club/Web3-Fiancial-Engineering-Courses","substrate-asia/hackathon-2023-winter","Web3-Club/Trable","movefuns/move_start","Web3-Club/Easy-Move","Web3-Club/Hello-hackathon","Web3-Jerry/bitlayer","Web3-Jerry/bitdemo","Solidity-Practice","NextWordApp/NextWordApp","CEX-Listing-Package","uxuyconnect/.github","uxuyconnect/Dapp-Demo","Web3-Club/Hello-DevRel","WorkWork-frontend","WorkWorkLabs/.github","WorkWorkLabs/Docs","DeFarmAi","WorkWorkLabs/LandingPage","WorkWorkLabs/Platform-Frontend","WorkWorkLabs/NomadPay","WorkWorkLabs/App","这个博客","MetaOdds","WorkWorkLabs/WorkWork","infini-mcp","web3Gurung/floodreliefnepal","felinics/memoh-docs","felinics/landing","hl-news-bot","chaimi"];
+
+export const weekTopRepo: number[] = [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,-2,0,-1,-1,-1,-1,1,-2,-1,-2,-2,-2,-2,2,-2,-2,3,3,4,1,-2,-2,1,5,6,6,7,7,8,-2,9,10,11,1,12,13,-1,14,7,15,11,16,16,10,17,17,18,14,-1,8,-1,17,19,19,20,-1,14,-1,21,22,22,10,10,23,-1,24,25,26,27,27,8,-1,-1,-1,-1,-1,-1,28,10,29,30,-1,31,32,14,30,-2,1,33,1,30,30,10,-2,-2,-2,30,14,-2,34,-1,-1,-1,35,35,24,8,14,-1,-1,30,14,36,36,37,38,-1,1,-1,14,39,14,14,14,40,14,14,41,14,14,14,42,14,14,1,14,-1,14,-1,14,14,14,14,14,-1,40,43,40,1,1,-1,-1,44,-1,-1,14,-1,-1,-1,40,1,-1,43,40,45,46,-2,1,1,47,-1,48,48,49,49,50,43,1,1,1,48,48,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,43,47,47,-1,-2,-1,-1,43,43,43,43,-1,-1,-1,43,1,47,10,51,52,53,53,54,55];
