@@ -64,7 +64,6 @@ export const summits: Summit[] = [
   { date: "2023-06-26", label: "Chain Food", note: "在做 ETH Shanghai 的参赛作品 Chain Food" },
   { date: "2026-09-21", label: "Memoh", note: "在给 Memoh 做官网和文档" },
   { date: "2023-10-16", label: "PoS Planet", note: "在打 ETH Hangzhou 黑客松，做 PoS Planet" },
-  { date: "2022-12-12", label: "学前端", note: "在写 Web 前端的学习笔记" },
   { date: "2023-02-20", label: "Web3 Wiki", note: "在搭 Web3 Wiki，翻译区块链工程师学习路线" },
 ];
 
@@ -191,18 +190,6 @@ export const tutorialExtras: RichText = [
   ["TON 资料汇总", "https://github.com/Web3-Club/Hello_TON"],
   "、",
   ["Web3 反诈手册", "https://github.com/Web3-Club/anti-Web3-scam"],
-  "、",
-  ["8 家交易所的上币资料", "https://github.com/yanboishere/CEX-Listing-Package"],
-  "。大学时的学习笔记也都公开着：",
-  ["Web 前端", "https://github.com/yanboishere/Web-learning"],
-  "、",
-  ["Go", "https://github.com/yanboishere/Go-learning"],
-  "、",
-  ["Python", "https://github.com/yanboishere/Python-leaning"],
-  "、",
-  ["高等数学笔记", "https://github.com/yanboishere/SongHao-Online-Course-of-Advanced-Mathematics-Notes"],
-  "和",
-  ["课后习题手写答案", "https://github.com/yanboishere/Answers-of-exercises-in-advanced-mathematics-textbooks"],
   "。",
 ];
 
@@ -323,6 +310,20 @@ export const sideWorks: WorkItem[] = [
 // 工作过的团队：只写 GitHub 上能找到的部分
 export const jobs: WorkItem[] = [
   {
+    id: "memoh",
+    date: "2026.09",
+    title: "Memoh",
+    context: "文档、官网和品牌",
+    description:
+      "Memoh 是开源的多智能体平台，每个 agent 都有自己的一台电脑。我写了官方文档的快速开始和入门教程，给官网做了中英文发布博客、日语版和帮助中心页面，也做品牌宣传图和推特配图。",
+    links: [
+      { kind: "site", label: "docs.memoh.ai", href: "https://docs.memoh.ai" },
+      prs("felinics/memoh-docs", "文档的 PR"),
+      prs("felinics/landing", "官网的 PR"),
+      gh("yanboishere/memoh-brand-assets", "品牌图"),
+    ],
+  },
+  {
     id: "uxuy",
     date: "2024.10",
     title: "UXUY",
@@ -401,20 +402,6 @@ export const contributions: Contribution[] = [
     links: [
       prs("WTFAcademy/WTF-JavaScript", "WTF JavaScript 的 PR"),
       { kind: "pr", label: "WTF Solidity #513", href: "https://github.com/AmazingAng/WTF-Solidity/pull/513" },
-    ],
-  },
-  {
-    id: "memoh",
-    project: "Memoh（文档和官网）",
-    stars: 2666,
-    merged: "合并 10 个 PR，2026 年 9—10 月",
-    description:
-      "开源的多智能体平台。我写了官方文档的快速开始和入门教程，给官网做了中英文发布博客、日语版和帮助中心页面，还做了一套品牌宣传图。",
-    links: [
-      { kind: "site", label: "docs.memoh.ai", href: "https://docs.memoh.ai" },
-      prs("felinics/memoh-docs", "文档的 PR"),
-      prs("felinics/landing", "官网的 PR"),
-      gh("yanboishere/memoh-brand-assets", "品牌图"),
     ],
   },
 ];
