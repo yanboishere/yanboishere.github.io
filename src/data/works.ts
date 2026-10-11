@@ -15,6 +15,7 @@ export interface WorkItem {
   title: string;
   context?: string; // 黑客松名称之类
   description: string;
+  struck?: string; // 接在 description 后面，用删除线显示
   stars?: number; // 100 以上才显示
   links: WorkLink[];
 }
@@ -302,7 +303,8 @@ export const sideWorks: WorkItem[] = [
     date: "2023.06",
     title: "SuperTrend 交易脚本",
     description:
-      "调 OKX API 盯 SuperTrend 指标的翻转信号，在 BTC 永续合约上做多做空，带止损止盈和低波动过滤。个人实验，没经过长期验证。",
+      "调 OKX API 盯 SuperTrend 指标的翻转信号，在 BTC 永续合约上做多做空，带止损止盈和低波动过滤。",
+    struck: "个人实验，没经过长期验证。",
     links: [gh("yanboishere/Trade.with-SuperTrend.parameter")],
   },
 ];

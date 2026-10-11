@@ -111,7 +111,10 @@ function WorkRow({ item }: { item: WorkItem }) {
           )}
         </h3>
         {item.context && <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{item.context}</p>}
-        <p className="mt-2 max-w-[36em] leading-relaxed text-gray-700 dark:text-gray-300">{item.description}</p>
+        <p className="mt-2 max-w-[36em] leading-relaxed text-gray-700 dark:text-gray-300">
+          {item.description}
+          {item.struck && <s className="text-gray-500 dark:text-gray-400">{item.struck}</s>}
+        </p>
         <Links links={item.links} />
       </div>
     </li>
