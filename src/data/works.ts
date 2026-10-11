@@ -1,7 +1,7 @@
 // /works 页面的内容。每一条都能在 GitHub 上找到对应的仓库、提交或 PR。
 // star 数和 PR 数统计到 2026-10-11，之后想更新直接改这里。
 
-export type LinkKind = "github" | "site" | "post" | "page" | "pr";
+export type LinkKind = "github" | "site" | "post" | "page" | "pr" | "video";
 
 export interface WorkLink {
   kind: LinkKind;
@@ -317,6 +317,41 @@ export const sideWorks: WorkItem[] = [
     description:
       "调 OKX API 盯 SuperTrend 指标的翻转信号，在 BTC 永续合约上做多做空，带止损止盈和低波动过滤。个人实验，没经过长期验证。",
     links: [gh("yanboishere/Trade.with-SuperTrend.parameter")],
+  },
+];
+
+// 工作过的团队：只写 GitHub 上能找到的部分
+export const jobs: WorkItem[] = [
+  {
+    id: "uxuy",
+    date: "2024.10",
+    title: "UXUY",
+    context: "开发者生态 BD / DevRel",
+    description:
+      "UXUY Wallet 是 Telegram 上的多链钱包，UXUY Connect 能把 DApp 变成 Telegram 小程序。我给 UXUY Connect 搭了入门教程仓库，录了一期视频《如何将 Dapp 转为 Telegram Mini App 的最简单方案》，写了配套的示例 DApp，在官方文档里补了 Flow 链的支持信息和自定义链的说明，还整理了组织主页上已接入的 DApp 列表。",
+    links: [
+      { kind: "video", label: "教程视频", href: "https://www.bilibili.com/video/BV13e1xY1E6d" },
+      gh("uxuyconnect/Dapp-Demo", "示例 DApp"),
+      prs("uxuycom/uxuy-docsite", "文档的 PR"),
+    ],
+  },
+  {
+    id: "bitlayer",
+    date: "2024.03",
+    title: "Bitlayer",
+    context: "DevRel",
+    description:
+      "Bitlayer 是基于 BitVM 的比特币 Layer 2。主网上线前，我们在 GitHub 上搭了一版开发者文档的草稿：文档站是探姬建的，我写了技术架构、路线图和应用场景的介绍，测试网的 Chain ID、RPC、浏览器、水龙头和钱包连接教程，以及部署章节的目录。",
+    links: [gh("Web3-Jerry/bitlayer", "文档仓库")],
+  },
+  {
+    id: "donate3",
+    date: "2023.10",
+    title: "Donate3（LXDAO）",
+    context: "公共物品",
+    description:
+      "LXDAO 做的 Web3 捐赠工具，公共物品和创作者五分钟就能接上加密货币捐赠。我在 GitHub 上留下的主要是 SDK 和官网仓库的 README 和项目介绍，产品代码主要是其他成员写的。",
+    links: [gh("lxdao-official/donate3-sdk", "SDK")],
   },
 ];
 

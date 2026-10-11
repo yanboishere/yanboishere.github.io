@@ -1,7 +1,7 @@
 import type { MouseEvent, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useReducedMotion } from "framer-motion";
-import { BookOpen, GitPullRequest, Github, Globe, Map as MapIcon, Star } from "lucide-react";
+import { BookOpen, CirclePlay, GitPullRequest, Github, Globe, Map as MapIcon, Star } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
 import ContributionRidge from "@/components/ContributionRidge";
 import { contributionAsOf, contributionStart, contributionTotal } from "@/data/contributions";
@@ -10,6 +10,7 @@ import {
   contributionExtras,
   contributions,
   hackathons,
+  jobs,
   products,
   sideWorks,
   stats,
@@ -28,6 +29,7 @@ const ICONS: Record<LinkKind, typeof Github> = {
   post: BookOpen,
   page: MapIcon,
   pr: GitPullRequest,
+  video: CirclePlay,
 };
 
 const SECTIONS = [
@@ -35,6 +37,7 @@ const SECTIONS = [
   { id: "tutorials", nav: "翻译和教程", title: "翻译和教程 📚" },
   { id: "hackathons", nav: "黑客松", title: "黑客松作品 🏁" },
   { id: "side-projects", nav: "小东西", title: "顺手做的小东西 🧩" },
+  { id: "work", nav: "工作", title: "工作过的团队 💼" },
   { id: "open-source", nav: "开源贡献", title: "开源贡献 🤝" },
   { id: "communities", nav: "社区", title: "建过的社区 🏕️" },
 ] as const;
@@ -192,7 +195,7 @@ export default function Works() {
             <figcaption className="mt-1 text-sm leading-relaxed text-gray-400 dark:text-gray-500">
               从 {yearMonth(contributionStart)}到 {yearMonth(contributionAsOf)}，每周在 GitHub 上的贡献数，一共{" "}
               <span className="font-digits text-base">{fmt(contributionTotal)}</span>{" "}
-              次。高度取了平方根，不然后面几年就贴地了。
+              次。
             </figcaption>
           </figure>
 
@@ -237,6 +240,14 @@ export default function Works() {
           <Section id="side-projects">
             <ul className="mt-4">
               {sideWorks.map((item) => (
+                <WorkRow key={item.id} item={item} />
+              ))}
+            </ul>
+          </Section>
+
+          <Section id="work" intro="大多是文档和开发者生态的工作，这里只写 GitHub 上留下了记录的部分。">
+            <ul className="mt-4">
+              {jobs.map((item) => (
                 <WorkRow key={item.id} item={item} />
               ))}
             </ul>
